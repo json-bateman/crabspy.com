@@ -7,6 +7,7 @@ const startBtn = document.getElementById("start-btn")
 const resetBtn = document.getElementById("reset-btn")
 const player = document.getElementById('player');
 const info = document.getElementById('info');
+const timer = document.getElementById('timer');
 const playersList = document.getElementById('players-list');
 const roomName = document.getElementById('room-name');
 const errorState = document.getElementById('error-state');
@@ -106,4 +107,8 @@ socket.on("room/role", ({ role, location }) => {
   } else {
     info.innerText = `your role is ${role} the location is ${location}`
   }
+})
+
+socket.on("room/timer", ({ remaining }) => {
+  timer.innerText = remaining
 })

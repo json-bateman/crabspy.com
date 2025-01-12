@@ -101,7 +101,11 @@ io.on("connection", (socket) => {
       io.to(playerId).emit("room/role", { role, location: playerId === spyId ? null : selectedLocation.title });
     });
 
-    io.to(roomName).emit("room/gameStarted", `Game has started in room: ${roomName} at ${selectedLocation.title}`);
+    io.to(roomName).emit("room/gameStarted", {
+      message: `Game has started in: ${selectedLocation.title}`,
+      location: selectedLocation.title,
+      duration,
+    });
   });
 
   socket.on("room/reset", (roomName) => {
@@ -109,6 +113,8 @@ io.on("connection", (socket) => {
     gameRooms[roomName] = { players: [] };
     io.to(roomName).emit("room/state", gameRooms[roomName]);
   });
+
+
 
   // Handle disconnection
   socket.on("disconnect", () => {
@@ -120,5 +126,24 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+setInterval(() => {
+  for (const roomName in gameRooms) {
+    const gameState = gameRooms[roomName]?.gameState;
+    if (gameState?.timer?.startTime) {
+      const elapsed = Math.floor((Date.now() - gameState.timer.startTime) / 1000);
+      const remaining = Math.max(0, gameState.timer.duration - elapsed);
+
+      // Broadcast timer to the room
+      io.to(roomName).emit("room/timer", { remaining });
+
+      // End the game if time is up
+      if (remaining <= 0) {
+        io.to(roomName).emit("room/gameOver", "Time's up! The game is over.");
+        delete gameRooms[roomName].gameState.timer; // Reset the timer
+      }
+    }
+  }
+}, 1000);
 
 http.listen(55577, () => console.log('Listening on port 55577'));

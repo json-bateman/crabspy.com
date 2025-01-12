@@ -4,28 +4,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebSocket Test</title>
+  <title>CrabSpy</title>
+  <link rel="icon" type="image/x-icon" href="/public/crabspy.jpg">
   <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 </head>
 
-<body>
-  <h1>CrabSpy 🦀</h1>
-  <h2>Current Room: <span id="room-name">None</span></h2>
-  <h3>Players in Room:</h3>
-  <ul id="players-list"></ul>
+<body className="body">
+  <main>
+    <h1>CrabSpy 🦀</h1>
+    <h2>Current Room: <span id="room-name">None</span></h2>
+    <h3>Players in Room:</h3>
+    <ul id="players-list"></ul>
 
-  <h2>Enter Room Id</h2>
-  <input id="room-id" name="room-id" placeholder="room id..." />
-  <button id="join-room">Join</button>
-  <br>
-  <br>
-  <button id="start-btn">Start</button>
-  <button id="reset-btn">Reset</button>
-  <p id="player"></p>
-  <p id="info"></p>
-  <span id="error-state"></span>
+    <h3>Timer: <span id="timer"></span></h3>
+    <h2>Enter Room Id</h2>
+    <input id="room-id" name="room-id" placeholder="room id..." />
+    <button id="join-room">Join</button>
+    <br>
+    <br>
+    <button id="start-btn">Start</button>
+    <button id="reset-btn">Reset</button>
+    <p id="player"></p>
+    <p id="info"></p>
+    <span id="error-state"></span>
+  </main>
 </body>
 
 <script src="/index.js"></script>
