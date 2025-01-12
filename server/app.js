@@ -1,4 +1,5 @@
 const http = require("http").createServer();
+const fs = require("fs")
 const locationData = require('../locations.json')
 const locations = locationData.locations
 
@@ -146,4 +147,4 @@ setInterval(() => {
   }
 }, 1000);
 
-io.listen(55577, () => console.log('Listening on port 55577'));
+http.listen(55577, () => console.log('Listening on port 55577'));
