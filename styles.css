@@ -75,6 +75,10 @@ table {
   border-collapse: collapse;
 }
 
+th {
+  padding: .5rem;
+}
+
 td {
   padding: .5rem;
 }
@@ -153,24 +157,93 @@ html[data-theme='light'] {
   --gray: #7c6f64;
 }
 
-html[data-theme='dark'] {
-  --bg: #282828;
-  --bg1: #3c3836;
-  --bg2: #504945;
-  --fg: #fbf1c7;
-  --red: #fb4934;
-  --green: #b8bb26;
-  --yellow: #fabd2f;
-  --blue: #83a598;
-  --purple: #d3869b;
-  --aqua: #8ec07c;
-  --orange: #fe8019;
-  --gray: #a89984;
+/* Theme from Daisy UI */
+html[data-theme='business'] {
+  --bg: #202020;
+  --bg1: #23282D;
+  --bg2: #1A1A1A;
+  --base-content: #D2D2D2;
+  --primary: #409AF5;
+  --primary-content: #B8DCFF;
+  --secondary: #002537;
+  --secondary-content: #7C8Fda;
+  --accent: #EA6947;
+  --accent-content: #3D0D00;
+  --neutral: #23282D;
+  --neutral-content: #C8D3E0;
+}
+
+
+/* ~~~~~~~~~~~~~ */
+/* Custom Styles */
+/* ~~~~~~~~~~~~~ */
+html {
+  background: var(--bg);
+}
+
+h1 {
+  font-weight: 200;
+  font-size: 60px;
 }
 
 main {
-  padding-left: 10%;
-  padding-right: 10%;
+  font-family: 'Times New Roman', Times, serif;
+  padding-left: 25%;
+  padding-right: 25%;
+  font-weight: 100;
+  color: var(--base-content);
+}
+
+input {
+  padding: 4px 8px 4px 8px;
+  border: 1px solid black;
+  box-shadow: 2px 2px 2px;
+}
+
+input:focus-visible {
+  outline: none;
+}
+
+button {
+  padding: 4px 8px 4px 8px;
+  border: 1px solid black;
+  background: white;
+  box-shadow: 2px 2px 2px;
+}
+
+button:active {
+  vertical-align: top;
+  box-shadow: 1px 1px 2px;
+}
+
+table {
+  width: 100%;
+}
+
+tr {
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid var(--primary)
+}
+
+hr {
+  margin-left: 0;
+  width: 100%;
+  border: 1.5px solid var(--base-content);
+}
+
+/* Classes and Ids */
+
+#error-state {
+  color: red;
+}
+
+#info {
+  border: 1px solid var(--base-content);
+  padding: 8px;
 }
 
 .flex {
@@ -182,20 +255,16 @@ main {
   width: 100%;
   padding-top: 2rem;
   padding-bottom: 2rem;
-  color: var(--fg);
-  border-top: 1px solid var(--fg);
 }
 
-/* ~~~~~~~~~~~~~ */
-/* Custom Styles */
-/* ~~~~~~~~~~~~~ */
-#error-state {
-  color: red;
+.container {
+  margin-top: 12px;
+  padding: 12px;
+  border: 3px solid var(--primary);
 }
 
-main {
-  padding-left: 25%;
-  padding-right: 25%;
+#room-name {
+  color: var(--primary)
 }
 
 @media (max-width: 600px) {

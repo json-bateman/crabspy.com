@@ -35,6 +35,8 @@ io.on("connection", (socket) => {
     if (!gameRooms[roomName].players.includes(socket.id)) {
       gameRooms[roomName].players.push(socket.id);
       gameRooms[roomName].names[socket.id] = socket.id;
+    } else {
+      return
     }
 
     socket.join(roomName);
