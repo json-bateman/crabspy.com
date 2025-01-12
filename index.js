@@ -1,4 +1,4 @@
-const socket = io('ws://localhost:55577');
+const socket = io('ws://crabspy.com:55577');
 
 // Grab all the elements, jank style
 const join = document.getElementById("join-room")
