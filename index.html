@@ -13,32 +13,35 @@
 
 <body className="body">
   <main>
-    <div class="container">
+    <div class="main-container">
       <h1>Crab Spy 🦀</h1>
       <hr>
-      <h2>Current Room: <span id="room-name"></span></h2>
-      <br>
-      <table>
-        <tbody id="player-table">
-          <tr>
-            <th>Player</th>
-            <th>Socket Id</th>
-          </tr>
-        </tbody>
-      </table>
-      <ul id="players-list"></ul>
-      <hr>
+      <div class="container">
+        <span class="subtitle">Current Room: <span id="room-name"></span></span>
+        <div class="join">
+          <input id="room-id" name="room-id" placeholder="room id..." />
+          <button id="join-room">Join</button>
+        </div>
+        <table>
+          <tbody id="player-table">
+            <tr>
+              <th>Player</th>
+              <th>Socket Id</th>
+            </tr>
+          </tbody>
+        </table>
+        <ul id="players-list"></ul>
 
-      <input id="room-id" name="room-id" placeholder="room id..." />
-      <button id="join-room">Join</button>
-      <br>
-      <br>
-      <button id="start-btn">Start</button>
-      <button id="reset-btn">Reset</button>
-      <span id="timer"></span>
-      <p id="player"></p>
-      <p id="info"></p>
-      <span id="error-state"></span>
+        <div class="start-reset">
+          <button id="start-btn">Start</button>
+          <button id="reset-btn">Reset</button>
+        </div>
+        <span id="timer"></span>
+        <p id="player"></p>
+        <p id="info"></p>
+        <span id="error-state"></span>
+        <span id="game-state"></span>
+      </div>
     </div>
   </main>
 </body>

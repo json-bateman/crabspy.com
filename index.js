@@ -1,8 +1,12 @@
-const socket = io('wss://crabspy.com');
-
 // Set the theme
-const storedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "business" : "light";
+const storedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "luxury" : "bumblebee";
 document.documentElement.setAttribute('data-theme', storedTheme);
+
+// Server
+//const socket = io('wss://crabspy.com');
+// Testing
+const socket = io('ws://localhost:55577');
+
 
 // Grab all the elements, jank style
 const join = document.getElementById("join-room")
@@ -16,8 +20,11 @@ const playerTable = document.getElementById('player-table');
 const playersList = document.getElementById('players-list');
 const roomName = document.getElementById('room-name');
 const errorState = document.getElementById('error-state');
+const gameState = document.getElementById('game-state');
 const changeName = document.getElementById('change-name');
 const nameInput = document.getElementById('name-input');
+
+let gameStates = {};
 
 // Log connection status
 socket.on('connect', () => {
@@ -44,41 +51,30 @@ join.addEventListener('click', () => {
     return;
   }
 
-  currentRoom = roomName;
-  socket.emit('room/join', currentRoom);
-
-  // Enable game buttons
-  startBtn.disabled = false;
-  resetBtn.disabled = false;
-});
-
-startBtn.addEventListener('click', () => {
-  socket.emit('room/start', currentRoom);
-
-  // Enable game buttons
-  startBtn.disabled = false;
-  resetBtn.disabled = false;
-});
-
-join.addEventListener('click', () => {
-  const roomName = roomId.value.trim();
-  if (!roomName) {
-    infoMessage('Please enter a room name.');
-    return;
+  if (gameStates[roomName]?.gameState.started) {
+    errorState.innerText = "Cannot join room, game is in progress"
+    return
   }
 
   currentRoom = roomName;
   socket.emit('room/join', currentRoom);
+});
 
-  // Enable game buttons
-  startBtn.disabled = false;
-  resetBtn.disabled = false;
+startBtn.addEventListener('click', () => {
+  socket.emit('room/start', currentRoom);
+});
+
+resetBtn.addEventListener('click', () => {
+  socket.emit('room/reset', currentRoom);
 });
 
 // ~~~~~~~~~~~~~~~~~~~
 // All socket events
 // ~~~~~~~~~~~~~~~~~~~
-socket.off("room/state")
+socket.on("allGameStates", (states) => {
+  gameStates = states
+})
+
 socket.on("room/state", (state) => {
   console.log(state)
   state.players.forEach((i, player) => {
@@ -92,15 +88,17 @@ socket.on("room/state", (state) => {
     tr.appendChild(td1)
     playerTable.appendChild(tr);
   });
-  roomName.innerText = state.room
+  roomName.innerText = state.roomName
   errorState.innerText = ""
 });
 
 socket.on("room/gameStarted", (state) => {
   console.log(state)
-  errorState.innerText = ""
-  startBtn.disabled = true;
-  resetBtn.disabled = true;
+  if (state.gameState.started) {
+    errorState.innerText = ""
+    startBtn.disabled = true;
+    join.disabled = true;
+  }
 });
 
 socket.on("room/error", (state) => {
@@ -122,4 +120,9 @@ socket.on("room/role", ({ role, location }) => {
 
 socket.on("room/timer", ({ remaining }) => {
   timer.innerText = remaining
+})
+
+socket.on("room/gameOver", (message) => {
+  console.log(message)
+  gameState.innerText = message
 })

@@ -1,5 +1,4 @@
 const http = require("http").createServer();
-const fs = require("fs")
 const locationData = require('../locations.json')
 const locations = locationData.locations
 
@@ -8,11 +7,12 @@ const io = require("socket.io")(http, {
 });
 
 // APP STATE
-let gameRooms = {
-  roomName: {
+const gameRooms = {
+  _defaultRoom: {
+    roomName: "",
     players: [],
-    names: {},
     gameState: {
+      started: false,
       location: null,
       roles: {},
       spy: null,
@@ -24,28 +24,27 @@ let gameRooms = {
 io.on("connection", (socket) => {
   console.log('A user connected', socket.id);
 
-  socket.on("room/join", (roomName) => {
-    console.log(`User ${socket.id} joined room: ${roomName}`);
+  // When user hits website, give them the state of all games
+  socket.emit('allGameStates', gameRooms)
 
-    if (!gameRooms[roomName]) {
-      gameRooms[roomName] = { players: [], names: {} };
+  socket.on("room/join", (room) => {
+    console.log(`User ${socket.id} joined room: ${room}`);
+
+    if (!gameRooms[room]) {
+      gameRooms[room] = gameRooms._defaultRoom;
+      gameRooms[room].roomName = room;
     }
 
     // Add the player and set default name as their socket ID
-    if (!gameRooms[roomName].players.includes(socket.id)) {
-      gameRooms[roomName].players.push(socket.id);
-      gameRooms[roomName].names[socket.id] = socket.id;
+    if (!gameRooms[room].players.includes(socket.id)) {
+      gameRooms[room].players.push(socket.id);
     } else {
       return
     }
 
-    socket.join(roomName);
+    socket.join(room);
 
-    io.to(roomName).emit("room/state", {
-      players: gameRooms[roomName].players,
-      names: gameRooms[roomName].names,
-      room: roomName
-    });
+    io.to(room).emit("room/state", gameRooms[room]);
 
     socket.emit("room/userInfo", {
       id: socket.id,
@@ -84,13 +83,14 @@ io.on("connection", (socket) => {
     });
 
     // Store the game state
-    const duration = 300;
+    const duration = 5;
     const startTime = Date.now();
     gameRooms[roomName].gameState = {
       location: selectedLocation.title,
       roles: roleAssignments,
       spy: spyId,
       timer: { startTime, duration },
+      started: true,
     };
 
     console.log(`Game started in room: ${roomName}`);
@@ -104,20 +104,13 @@ io.on("connection", (socket) => {
       io.to(playerId).emit("room/role", { role, location: playerId === spyId ? null : selectedLocation.title });
     });
 
-    io.to(roomName).emit("room/gameStarted", {
-      message: `Game has started in: ${selectedLocation.title}`,
-      location: selectedLocation.title,
-      duration,
-    });
+    io.to(roomName).emit("room/gameStarted", gameRooms[roomName]);
   });
 
   socket.on("room/reset", (roomName) => {
-    console.log(`Game reset in room: ${roomName}`);
-    gameRooms[roomName] = { players: [] };
-    io.to(roomName).emit("room/state", gameRooms[roomName]);
-  });
-
-
+    gameRooms[roomName] = gameRooms._defaultRoom
+    gameRooms[roomName].roomName = roomName
+  })
 
   // Handle disconnection
   socket.on("disconnect", () => {
@@ -132,18 +125,20 @@ io.on("connection", (socket) => {
 
 setInterval(() => {
   for (const roomName in gameRooms) {
-    const gameState = gameRooms[roomName]?.gameState;
+    console.log(gameRooms)
+    const gameState = gameRooms[roomName].gameState;
     if (gameState?.timer?.startTime) {
       const elapsed = Math.floor((Date.now() - gameState.timer.startTime) / 1000);
       const remaining = Math.max(0, gameState.timer.duration - elapsed);
 
-      // Broadcast timer to the room
       io.to(roomName).emit("room/timer", { remaining });
 
-      // End the game if time is up
       if (remaining <= 0) {
+        console.log("here")
         io.to(roomName).emit("room/gameOver", "Time's up! The game is over.");
-        delete gameRooms[roomName].gameState.timer; // Reset the timer
+        delete gameRooms[roomName].gameState.timer;
+        gameRooms[roomName].gameState.started = false
+        io.to(roomName).emit("room/state", gameRooms[roomName]);
       }
     }
   }
