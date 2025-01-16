@@ -2,6 +2,21 @@
 const storedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "luxury" : "bumblebee";
 document.documentElement.setAttribute('data-theme', storedTheme);
 
+function clearChildren(parentEl) {
+  while (parentEl.firstChild) {
+    parentEl.removeChild(parentEl.firstChild)
+  }
+}
+
+function appendRow(tParent, el1, el2, c1, c2) {
+  const tr = document.createElement("tr");
+  el1.textContent = c1;
+  el2.textContent = c2;
+  tr.appendChild(el1)
+  tr.appendChild(el2)
+  tParent.appendChild(tr)
+}
+
 // Server
 //const socket = io('wss://crabspy.com');
 // Testing
@@ -19,8 +34,8 @@ const timer = document.getElementById('timer');
 const playerTable = document.getElementById('player-table');
 const playersList = document.getElementById('players-list');
 const roomName = document.getElementById('room-name');
-const errorState = document.getElementById('error-state');
-const gameState = document.getElementById('game-state');
+const errorInfo = document.getElementById('error-info');
+const gameInfo = document.getElementById('game-info');
 const changeName = document.getElementById('change-name');
 const nameInput = document.getElementById('name-input');
 
@@ -52,7 +67,7 @@ join.addEventListener('click', () => {
   }
 
   if (gameStates[roomName]?.gameState.started) {
-    errorState.innerText = "Cannot join room, game is in progress"
+    errorInfo.innerText = "Cannot join room, game is in progress"
     return
   }
 
@@ -75,35 +90,42 @@ socket.on("allGameStates", (states) => {
   gameStates = states
 })
 
-socket.on("room/state", (state) => {
-  console.log(state)
-  state.players.forEach((i, player) => {
-    const tr = document.createElement("tr");
+socket.on("room/state", (gameRoom) => {
+  console.log("state")
+  console.log(gameRoom)
+
+  clearChildren(playerTable);
+
+  const th1 = document.createElement("th");
+  const th2 = document.createElement("th");
+  appendRow(playerTable, th1, th2, "Player", "Socket Id")
+
+  gameRoom.players.forEach((player, i) => {
     const td1 = document.createElement("td");
     const td2 = document.createElement("td");
-    td1.textContent = i + 1;
-    td2.textContent = player;
-
-    tr.appendChild(td2)
-    tr.appendChild(td1)
-    playerTable.appendChild(tr);
+    appendRow(playerTable, td1, td2, i + 1, player)
   });
-  roomName.innerText = state.roomName
-  errorState.innerText = ""
+
+  roomName.innerText = gameRoom.name
+  errorInfo.innerText = ""
 });
 
-socket.on("room/gameStarted", (state) => {
-  console.log(state)
-  if (state.gameState.started) {
-    errorState.innerText = ""
+socket.on("room/gameStarted", ({ gameState }) => {
+  if (gameState.started) {
+    errorInfo.innerText = ""
     startBtn.disabled = true;
     join.disabled = true;
   }
 });
 
-socket.on("room/error", (state) => {
-  console.log(state)
-  errorState.innerText = state
+socket.on("room/gameReset", ({ gameState }) => {
+  timer.innerText = gameState.timer.remaining
+  startBtn.disabled = false;
+  join.disabled = false;
+})
+
+socket.on("room/error", (errorMsg) => {
+  errorInfo.innerText = errorMsg
 });
 
 socket.on("room/userInfo", ({ id }) => {
@@ -118,11 +140,6 @@ socket.on("room/role", ({ role, location }) => {
   }
 })
 
-socket.on("room/timer", ({ remaining }) => {
-  timer.innerText = remaining
-})
-
-socket.on("room/gameOver", (message) => {
-  console.log(message)
-  gameState.innerText = message
+socket.on("room/timer", ({ gameState }) => {
+  timer.innerText = gameState.timer.remaining
 })

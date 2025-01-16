@@ -2,24 +2,26 @@ const http = require("http").createServer();
 const locationData = require('../locations.json')
 const locations = locationData.locations
 
+const ONE_SECOND = 1000;
+
 const io = require("socket.io")(http, {
   cors: { origin: "*" }
 });
 
-// APP STATE
-const gameRooms = {
-  _defaultRoom: {
-    roomName: "",
-    players: [],
-    gameState: {
-      started: false,
-      location: null,
-      roles: {},
-      spy: null,
-      timer: { startTime: null, duration: 0 },
-    },
+const _defaultRoom = {
+  name: "",
+  players: [],
+  gameState: {
+    started: false,
+    location: null,
+    roles: {},
+    spy: null,
+    timer: { startTime: null, duration: 300, remaining: 300 },
   },
-};
+}
+
+// APP STATE
+const gameRooms = {};
 
 io.on("connection", (socket) => {
   console.log('A user connected', socket.id);
@@ -29,10 +31,22 @@ io.on("connection", (socket) => {
 
   socket.on("room/join", (room) => {
     console.log(`User ${socket.id} joined room: ${room}`);
+    // First check if user is in any other rooms, and remove them
+    Object.values(gameRooms)
+      .forEach((room) => {
+        const filtered = room.players.filter((player) => player !== socket.id)
+        room.players = filtered
+      })
+
+    // Emit updated state to clients for people moving rooms
+    Object.entries(gameRooms).forEach(([name, room]) => {
+      io.to(name).emit("room/state", room);
+    });
 
     if (!gameRooms[room]) {
-      gameRooms[room] = gameRooms._defaultRoom;
-      gameRooms[room].roomName = room;
+      // Need a deep copy of default room, or arrays and objects will reference incorrectly
+      gameRooms[room] = structuredClone(_defaultRoom)
+      gameRooms[room].name = room;
     }
 
     // Add the player and set default name as their socket ID
@@ -89,7 +103,7 @@ io.on("connection", (socket) => {
       location: selectedLocation.title,
       roles: roleAssignments,
       spy: spyId,
-      timer: { startTime, duration },
+      timer: { startTime, duration, remaining: gameRooms[roomName].gameState.timer.remaining },
       started: true,
     };
 
@@ -108,8 +122,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("room/reset", (roomName) => {
-    gameRooms[roomName] = gameRooms._defaultRoom
-    gameRooms[roomName].roomName = roomName
+    const tempPlayers = gameRooms[roomName].players
+    gameRooms[roomName] = structuredClone(_defaultRoom)
+    gameRooms[roomName].players = tempPlayers
+    gameRooms[roomName].name = roomName
+    io.to(roomName).emit("room/gameReset", gameRooms[roomName]);
   })
 
   // Handle disconnection
@@ -123,6 +140,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// Emit timers appropriately to every room
 setInterval(() => {
   for (const roomName in gameRooms) {
     console.log(gameRooms)
@@ -130,18 +148,26 @@ setInterval(() => {
     if (gameState?.timer?.startTime) {
       const elapsed = Math.floor((Date.now() - gameState.timer.startTime) / 1000);
       const remaining = Math.max(0, gameState.timer.duration - elapsed);
+      console.log(gameRooms[roomName])
+      gameRooms[roomName].gameState.timer.remaining = remaining
 
-      io.to(roomName).emit("room/timer", { remaining });
+      io.to(roomName).emit("room/timer", gameRooms[roomName]);
 
       if (remaining <= 0) {
-        console.log("here")
-        io.to(roomName).emit("room/gameOver", "Time's up! The game is over.");
-        delete gameRooms[roomName].gameState.timer;
         gameRooms[roomName].gameState.started = false
         io.to(roomName).emit("room/state", gameRooms[roomName]);
       }
     }
   }
-}, 1000);
+}, ONE_SECOND);
+
+// Every minute clean up rooms with no players in them
+setInterval(() => {
+  for (const roomName in gameRooms) {
+    if (gameRooms[roomName].players.length === 0) {
+      delete gameRooms[roomName]
+    }
+  }
+}, ONE_SECOND * 60);
 
 http.listen(55577, () => console.log('Listening on port 55577'));
