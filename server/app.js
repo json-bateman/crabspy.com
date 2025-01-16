@@ -97,7 +97,7 @@ io.on("connection", (socket) => {
     });
 
     // Store the game state
-    const duration = 5;
+    const duration = 300;
     const startTime = Date.now();
     gameRooms[roomName].gameState = {
       location: selectedLocation.title,
