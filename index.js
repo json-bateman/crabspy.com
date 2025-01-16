@@ -18,9 +18,9 @@ function appendRow(tParent, el1, el2, c1, c2) {
 }
 
 // Server
-//const socket = io('wss://crabspy.com');
+const socket = io('wss://crabspy.com');
 // Testing
-const socket = io('ws://localhost:55577');
+//const socket = io('ws://localhost:55577');
 
 
 // Grab all the elements, jank style
