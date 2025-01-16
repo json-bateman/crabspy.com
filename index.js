@@ -2,6 +2,7 @@
 const storedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "luxury" : "bumblebee";
 document.documentElement.setAttribute('data-theme', storedTheme);
 
+// Do the code
 function appendLocation(tParent, location) {
   const span = document.createElement("span");
   span.textContent = location
@@ -24,7 +25,6 @@ fetch('/locations.json')
   });
 
 const locationsEl = document.getElementById('locations');
-
 
 // Collapsible Elements
 const coll = document.getElementsByClassName("collapsible");

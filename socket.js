@@ -1,4 +1,13 @@
-// Set the theme
+function secondsToTimeString(seconds) {
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+
+  const formattedMinutes = minutes.toString()
+  const formattedSeconds = remainingSeconds.toString().padStart(2, '0');
+
+  return `${formattedMinutes}:${formattedSeconds}`;
+}
+
 function clearChildren(parentEl) {
   while (parentEl.firstChild) {
     parentEl.removeChild(parentEl.firstChild)
@@ -44,14 +53,11 @@ socket.on('connect', () => {
   document.getElementById('info').innerText = 'Connected to server';
 });
 
-// Current room name
 let currentRoom = '';
 
-// Function to log messages
 function infoMessage(message) {
   info.innerText = message;
 }
-
 
 // ~~~~~~~~~~~~~~~~~~~
 // All event listeners
@@ -111,7 +117,7 @@ socket.on("room/gameStarted", ({ gameState }) => {
 });
 
 socket.on("room/gameReset", ({ gameState }) => {
-  timer.innerText = gameState.timer.remaining
+  timer.innerText = secondsToTimeString(gameState.timer.remaining);
   startBtn.disabled = false;
   join.disabled = false;
 })
@@ -133,5 +139,5 @@ socket.on("room/role", ({ role, location }) => {
 })
 
 socket.on("room/timer", ({ gameState }) => {
-  timer.innerText = gameState.timer.remaining
+  timer.innerText = secondsToTimeString(gameState.timer.remaining);
 })
