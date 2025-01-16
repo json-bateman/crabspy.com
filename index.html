@@ -5,10 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CrabSpy</title>
-  <link rel="icon" type="image/x-icon" href="./public/crabspy.jpg">
+  <link rel="icon" type="image/x-icon" href="./public/crabspy.png">
   <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 </head>
 
 <body className="body">
@@ -23,8 +22,7 @@
           <button id="join-room">Join</button>
         </div>
         <table>
-          <tbody id="player-table">
-          </tbody>
+          <tbody id="player-table"></tbody>
         </table>
         <ul id="players-list"></ul>
 
@@ -34,14 +32,19 @@
         </div>
         <span id="timer"></span>
         <p id="player"></p>
-        <p id="info"></p>
-        <span id="error-info"></span>
-        <span id="game-info"></span>
+        <p class="info" id="info"></p>
+        <div class="flex flex-col">
+          <span class="info" id="error-info"></span>
+          <span class="info" id="game-info"></span>
+        </div>
+        <button class="possible-locations collapsible">Possible Locations -</button>
+        <div style="display: grid;" id="locations"></div>
       </div>
     </div>
   </main>
 </body>
 
 <script src="/index.js"></script>
+<script src="/socket.js"></script>
 
 </html>

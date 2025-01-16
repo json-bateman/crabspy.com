@@ -20,7 +20,7 @@ const _defaultRoom = {
   },
 }
 
-// APP STATE
+// IN MEMORY APP STATE
 const gameRooms = {};
 
 io.on("connection", (socket) => {
@@ -31,6 +31,11 @@ io.on("connection", (socket) => {
 
   socket.on("room/join", (room) => {
     console.log(`User ${socket.id} joined room: ${room}`);
+    // If game is in progress, reject them
+    if (gameRooms[room]?.gameState?.started) {
+      socket.emit("room/error", "Cannot join room, game is in progress")
+      return
+    }
     // First check if user is in any other rooms, and remove them
     Object.values(gameRooms)
       .forEach((room) => {

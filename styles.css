@@ -77,6 +77,7 @@ html[data-theme='bumblebee'] {
   --neutral: oklch(12.75% 0.075 281.99);
   --info: #622A0F;
   --base-100: oklch(100% 0 0);
+  --base-200: oklch(98% 0.01 33)
 }
 
 /* Theme from Daisy UI */
@@ -87,7 +88,7 @@ html[data-theme='luxury'] {
   --neutral: #331800;
   --neutral-content: #FFE7A3;
   --base-100: #09090b;
-  --base-200: #171618;
+  --base-200: #1a1618;
   --base-300: #2e2d2f;
   --base-content: #dca54c;
   --info: #66c6ff;
@@ -105,11 +106,11 @@ html[data-theme='luxury'] {
 /* Custom Styles */
 /* ~~~~~~~~~~~~~ */
 html {
-  background: var(--base-100);
+  background: var(--base-200);
 }
 
 h1 {
-  font-weight: 200;
+  font-weight: 300;
   font-size: 60px;
 }
 
@@ -146,7 +147,7 @@ button:active {
 }
 
 table {
-  width: 350px;
+  width: 300px;
 }
 
 tr {
@@ -157,7 +158,12 @@ th,
 td {
   text-align: center;
   max-width: 200px;
-  border: 1px solid var(--primary)
+  border: 1px solid var(--primary);
+  background: var(--base-100);
+}
+
+td {
+  font-weight: 400;
 }
 
 hr {
@@ -181,12 +187,31 @@ hr {
   font-weight: 400;
 }
 
+.possible-locations {
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.collapsible {
+  border: 1px var(--primary) solid;
+  cursor: pointer;
+  padding: 8px;
+}
+
+#locations {
+  margin-top: 12px;
+  max-width: 900px;
+  grid-template-columns: 1fr 1fr 1fr;
+  font-weight: 500;
+  color: var(--info);
+}
 
 #error-info {
   color: red;
 }
 
-#info {
+.info {
   font-weight: 400;
 }
 
@@ -194,15 +219,15 @@ hr {
   display: flex;
 }
 
+.flex-col {
+  flex-direction: col;
+}
+
 .footer {
   text-align: center;
   width: 100%;
   padding-top: 2rem;
   padding-bottom: 2rem;
-}
-
-.container {
-  padding: 16px 0px 16px 16px;
 }
 
 #room-name {
@@ -219,6 +244,10 @@ hr {
   main {
     padding-left: 4%;
     padding-right: 4%;
+  }
+
+  #locations {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
