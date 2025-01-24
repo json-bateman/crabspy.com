@@ -373,6 +373,10 @@ ul {
     padding-right: 4%;
   }
 
+  h1 {
+    font-size: 44px;
+  }
+
   table {
     width: 300px;
   }
