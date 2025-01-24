@@ -1,4 +1,4 @@
-/* Josh Comeaus simple CSS reset */
+/* Josh Comeaus simple CSS reset, custom styling below */
 /* Use a more-intuitive box-sizing model */
 *,
 *::before,
@@ -67,7 +67,9 @@ h6 {
   isolation: isolate;
 }
 
-/* Theme from Daisy UI */
+/* ~~~~~~~~~~~~~~~~~~~~ */
+/* Themes from Daisy UI */
+/* ~~~~~~~~~~~~~~~~~~~~ */
 html[data-theme='bumblebee'] {
   --primary: oklch(89.51% 0.2132 96.61);
   --primary-content: oklch(38.92% 0.046 96.61);
@@ -80,7 +82,6 @@ html[data-theme='bumblebee'] {
   --base-200: oklch(98% 0.01 33)
 }
 
-/* Theme from Daisy UI */
 html[data-theme='luxury'] {
   --primary: oklch(100% 0 0);
   --secondary: #152747;
@@ -97,14 +98,14 @@ html[data-theme='luxury'] {
   --error: #ff6f6f;
 }
 
+/* ~~~~~~~~~~~~~~~~~~~ */
+/* Begin Custom Styles */
+/* ~~~~~~~~~~~~~~~~~~~ */
+
 :root {
   --ff-primary: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-
-/* ~~~~~~~~~~~~~ */
-/* Custom Styles */
-/* ~~~~~~~~~~~~~ */
 html {
   background: var(--base-200);
 }
@@ -115,11 +116,16 @@ h1 {
 }
 
 main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-family: var(--ff-primary);
-  padding-left: 25%;
-  padding-right: 25%;
+  padding-left: 10%;
+  padding-right: 10%;
   font-weight: 100;
   color: var(--base-content);
+  min-height: 100vh;
+  position: relative;
 }
 
 input {
@@ -142,12 +148,12 @@ button {
 
 button:active {
   vertical-align: top;
-  box-shadow: 1px 1px 2px var(--base-content);
+  box-shadow: 1px 1px 1px var(--base-content);
   background: var(--base-content);
 }
 
 table {
-  width: 300px;
+  width: 350px;
 }
 
 tr {
@@ -172,10 +178,97 @@ hr {
   border: 1.5px solid var(--primary);
 }
 
+ul {
+  list-style-type: none;
+}
+
 /* Classes and Ids */
+
+.main-container {
+  /* take up remaining space on page */
+  flex: 1;
+  max-width: 1000px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 32px 0px 32px;
+}
+
+.title {
+  display: flex;
+  justify-content: center;
+}
+
+.main-content {
+  flex: 1;
+
+}
+
+.sub-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.left-side {
+  min-height: 340px;
+}
+
+.right-side {
+  margin-top: 24px;
+  display: flex;
+}
+
+.splash-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 600px;
+  width: 100%;
+  height: auto;
+  border: 6px groove var(--primary);
+  overflow: hidden;
+}
+
+.splash-container img {
+  object-fit: contain;
+  width: 100%;
+  height: auto;
+}
 
 .join {
   margin: 8px 0px 8px 0px;
+}
+
+.tooltip {
+  position: relative;
+  cursor: pointer;
+}
+
+.tooltip-text {
+  font-size: 12px;
+  visibility: hidden;
+  background-color: black;
+  color: white;
+  text-align: center;
+  padding: 8px;
+
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
 
 .start-reset {
@@ -187,24 +280,32 @@ hr {
   font-weight: 400;
 }
 
-.possible-locations {
-  margin-top: 12px;
+.collapsible {
+  display: flex;
   font-size: 18px;
   font-weight: 600;
-}
-
-.collapsible {
   border: 1px var(--primary) solid;
   cursor: pointer;
   padding: 8px;
 }
 
+#rules-locations-buttons {
+  display: flex;
+  gap: 12px;
+}
+
 #locations {
+  max-width: 750px;
   margin-top: 12px;
-  max-width: 900px;
   grid-template-columns: 1fr 1fr 1fr;
   font-weight: 500;
   color: var(--info);
+}
+
+#rules-text {
+  max-width: 750px;
+  margin-top: 12px;
+  font-weight: 500;
 }
 
 #error-info {
@@ -223,27 +324,57 @@ hr {
   flex-direction: col;
 }
 
-.footer {
-  text-align: center;
-  width: 100%;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
-
 #room-name {
   color: var(--info);
   font-size: 42px;
-  font-weight: 500;
+  font-weight: 400;
+}
+
+.rule-list>li {
+  margin-top: 12px;
+}
+
+.desc {
+  font-size: 0.75rem;
+  color: var(--info);
 }
 
 #timer {
   font-size: 32px;
 }
 
+#github {
+  object-fit: contain;
+  width: 40px;
+  height: 40px;
+}
+
+.footer {
+  position: relative;
+  bottom: 0;
+  border-top: 3px solid var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: flex-end;
+  width: 100%;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+
+/* ~~~~~~~~~~~~~ */
+/* Media Queries */
+/* ~~~~~~~~~~~~~ */
 @media (max-width: 600px) {
   main {
     padding-left: 4%;
     padding-right: 4%;
+  }
+
+  table {
+    width: 300px;
   }
 
   #locations {
@@ -251,9 +382,8 @@ hr {
   }
 }
 
-@media (max-width: 1400px) and (min-width: 601px) {
-  main {
-    padding-left: 10%;
-    padding-right: 10%;
+@media (max-width: 900px) {
+  .right-side {
+    display: none;
   }
 }

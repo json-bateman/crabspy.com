@@ -4,6 +4,9 @@ const locations = locationData.locations
 
 const ONE_SECOND = 1000;
 
+const EIGHT_MINUTES = 480;
+
+
 const io = require("socket.io")(http, {
   cors: { origin: "*" }
 });
@@ -13,10 +16,11 @@ const _defaultRoom = {
   players: [],
   gameState: {
     started: false,
+    stopped: false,
     location: null,
     roles: {},
     spy: null,
-    timer: { startTime: null, duration: 300, remaining: 300 },
+    timer: EIGHT_MINUTES,
   },
 }
 
@@ -102,13 +106,11 @@ io.on("connection", (socket) => {
     });
 
     // Store the game state
-    const duration = 300;
-    const startTime = Date.now();
     gameRooms[roomName].gameState = {
+      ...gameRooms[roomName].gameState,
       location: selectedLocation.title,
       roles: roleAssignments,
       spy: spyId,
-      timer: { startTime, duration, remaining: gameRooms[roomName].gameState.timer.remaining },
       started: true,
     };
 
@@ -125,6 +127,13 @@ io.on("connection", (socket) => {
 
     io.to(roomName).emit("room/gameStarted", gameRooms[roomName]);
   });
+
+  socket.on("room/stop", (roomName) => {
+    const gameState = gameRooms[roomName].gameState
+    if (gameState?.started) {
+      gameState.stopped = !gameState.stopped
+    }
+  })
 
   socket.on("room/reset", (roomName) => {
     const tempPlayers = gameRooms[roomName].players
@@ -150,15 +159,12 @@ setInterval(() => {
   for (const roomName in gameRooms) {
     console.log(gameRooms)
     const gameState = gameRooms[roomName].gameState;
-    if (gameState?.timer?.startTime) {
-      const elapsed = Math.floor((Date.now() - gameState.timer.startTime) / 1000);
-      const remaining = Math.max(0, gameState.timer.duration - elapsed);
-      console.log(gameRooms[roomName])
-      gameRooms[roomName].gameState.timer.remaining = remaining
+    if (gameState?.started && !gameState.stopped) {
+      gameState.timer--
 
       io.to(roomName).emit("room/timer", gameRooms[roomName]);
 
-      if (remaining <= 0) {
+      if (gameState.timer <= 0) {
         gameRooms[roomName].gameState.started = false
         io.to(roomName).emit("room/state", gameRooms[roomName]);
       }

@@ -2,7 +2,6 @@
 const storedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "luxury" : "bumblebee";
 document.documentElement.setAttribute('data-theme', storedTheme);
 
-// Do the code
 function appendLocation(tParent, location) {
   const span = document.createElement("span");
   span.textContent = location
@@ -27,17 +26,24 @@ fetch('/locations.json')
 const locationsEl = document.getElementById('locations');
 
 // Collapsible Elements
-const coll = document.getElementsByClassName("collapsible");
-for (let i = 0; i < coll.length; i++) {
-  coll[i].addEventListener("click", function() {
-    this.classList.toggle("active");
-    var content = this.nextElementSibling;
-    if (content.style.display === "grid") {
-      this.textContent = "Possible Locations +"
-      content.style.display = "none";
-    } else {
-      this.textContent = "Possible Locations -"
-      content.style.display = "grid";
-    }
-  });
-}
+const rules = document.getElementById('rules');
+const rulesText = document.getElementById('rules-text');
+const locs = document.getElementById('possible-locations');
+
+rules.addEventListener('click', () => {
+  if (rulesText.style.display == "none") {
+    rulesText.style.display = "block"
+    locationsEl.style.display = "none"
+  } else {
+    rulesText.style.display = "none"
+  }
+})
+
+locs.addEventListener('click', () => {
+  if (locationsEl.style.display == "none") {
+    locationsEl.style.display = "grid"
+    rulesText.style.display = "none"
+  } else {
+    locationsEl.style.display = "none"
+  }
+})

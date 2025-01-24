@@ -14,6 +14,22 @@ function clearChildren(parentEl) {
   }
 }
 
+function appendHeader(tParent, el1, el2, c1, c2) {
+  const tr = document.createElement("tr");
+  el1.textContent = c1;
+  el2.textContent = c2;
+
+  const tooltip = document.createElement("span");
+  tooltip.innerText = "Unique id from the game server.";
+  tooltip.classList.add("tooltip-text");
+  el2.appendChild(tooltip);
+  el2.className = "tooltip";
+
+  tr.appendChild(el1)
+  tr.appendChild(el2)
+  tParent.appendChild(tr)
+}
+
 function appendRow(tParent, el1, el2, c1, c2) {
   const tr = document.createElement("tr");
   el1.textContent = c1;
@@ -24,18 +40,20 @@ function appendRow(tParent, el1, el2, c1, c2) {
 }
 
 // Server
-const socket = io('wss://crabspy.com');
+//const socket = io('wss://crabspy.com');
 // Testing
-//const socket = io('ws://localhost:55577');
+const socket = io('ws://localhost:55577');
 
 
 // Grab all the elements, jank style
 const join = document.getElementById("join-room")
 const roomId = document.getElementById("room-id")
 const startBtn = document.getElementById("start-btn")
+const stopBtn = document.getElementById("stop-btn")
 const resetBtn = document.getElementById("reset-btn")
 const player = document.getElementById('player');
 const info = document.getElementById('info');
+const playerId = document.getElementById('playerId');
 const timer = document.getElementById('timer');
 const playerTable = document.getElementById('player-table');
 const playersList = document.getElementById('players-list');
@@ -49,8 +67,8 @@ let gameStates = {};
 
 // Log connection status
 socket.on('connect', () => {
-  console.log('Connected to WebSocket server');
-  document.getElementById('info').innerText = 'Connected to server';
+  console.log('Connected to the WebSocket server');
+  document.getElementById('info').innerText = 'Connected to the Server';
 });
 
 let currentRoom = '';
@@ -77,6 +95,16 @@ startBtn.addEventListener('click', () => {
   socket.emit('room/start', currentRoom);
 });
 
+stopBtn.addEventListener('click', () => {
+  socket.emit('room/stop', currentRoom);
+  console.log(stopBtn.innerText)
+  if (stopBtn.innerText == "Stop") {
+    stopBtn.innerText = "Resume";
+  } else {
+    stopBtn.innerText = "Stop";
+  }
+});
+
 resetBtn.addEventListener('click', () => {
   socket.emit('room/reset', currentRoom);
 });
@@ -89,14 +117,12 @@ socket.on("allGameStates", (states) => {
 })
 
 socket.on("room/state", (gameRoom) => {
-  console.log("state")
-  console.log(gameRoom)
-
   clearChildren(playerTable);
 
   const th1 = document.createElement("th");
   const th2 = document.createElement("th");
-  appendRow(playerTable, th1, th2, "Player", "Socket Id")
+
+  appendHeader(playerTable, th1, th2, "Player", "Socket Id");
 
   gameRoom.players.forEach((player, i) => {
     const td1 = document.createElement("td");
@@ -117,7 +143,7 @@ socket.on("room/gameStarted", ({ gameState }) => {
 });
 
 socket.on("room/gameReset", ({ gameState }) => {
-  timer.innerText = secondsToTimeString(gameState.timer.remaining);
+  timer.innerText = secondsToTimeString(gameState.timer);
   startBtn.disabled = false;
   join.disabled = false;
 })
@@ -127,7 +153,7 @@ socket.on("room/error", (errorMsg) => {
 });
 
 socket.on("room/userInfo", ({ id }) => {
-  info.innerText = `Your ID: ${id}`;
+  playerId.innerText = `Your ID: ${id}`;
 });
 
 socket.on("room/role", ({ role, location }) => {
@@ -139,5 +165,5 @@ socket.on("room/role", ({ role, location }) => {
 })
 
 socket.on("room/timer", ({ gameState }) => {
-  timer.innerText = secondsToTimeString(gameState.timer.remaining);
+  timer.innerText = secondsToTimeString(gameState.timer);
 })
