@@ -266,7 +266,15 @@ li:last-child {
 }
 
 .join {
-  margin: 8px 0px 8px 0px;
+  margin: 24px 0px 8px 0px;
+}
+
+.join-btn {
+  outline: none;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  color: var(--info);
 }
 
 .tooltip {
@@ -355,11 +363,11 @@ li:last-child {
 
 #room-name {
   color: var(--neutral-content);
-  font-size: 42px;
+  font-size: 32px;
   font-weight: 400;
 }
 
-.rule-list > li {
+.rule-list>li {
   margin-top: 12px;
 }
 
@@ -419,6 +427,7 @@ li:last-child {
 }
 
 @media (max-width: 900px) {
+
   /* make splash image disappear */
   .right-side {
     display: none;

@@ -70,6 +70,7 @@ function updateRoomsTable(table, rooms) {
     cell2.textContent = players.length;
     const joinButton = document.createElement("button");
     joinButton.textContent = "Join";
+    joinButton.className = "join-btn";
     joinButton.onclick = () => {
       socket.emit("room/join", name);
     };
