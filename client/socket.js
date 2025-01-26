@@ -87,13 +87,13 @@ function hide(element) {
 
 function joinRoom() {
   clearInterval(pollingIntervalId);
-  hide(roomsContainer);
+  hide(lobbyContainer);
   show(roomContainer);
 }
 
 function leaveRoom() {
   hide(roomContainer);
-  show(roomsContainer);
+  show(lobbyContainer);
   pollRoomsList();
 }
 
@@ -106,7 +106,7 @@ function pollRoomsList() {
 // Server
 const socket = io("wss://crabspy.com");
 // Testing
-//const socket = io("ws://localhost:55577");
+// const socket = io("ws://localhost:55577");
 
 // Grab all the elements, jank style
 const hostBtn = document.getElementById("host-room");
@@ -125,7 +125,7 @@ const errorInfo = document.getElementById("error-info");
 const gameInfo = document.getElementById("game-info");
 const changeName = document.getElementById("change-name");
 const nameInput = document.getElementById("name-input");
-const roomsContainer = document.getElementById("rooms-container");
+const lobbyContainer = document.getElementById("lobby-container");
 const roomsTable = document.getElementById("rooms-table");
 const roomContainer = document.getElementById("room-container");
 const leaveRoomBtn = document.getElementById("leave-btn");
@@ -136,7 +136,7 @@ const gameTimer = new GameTimer(timer);
 socket.on("connect", () => {
   console.log("Connected to the WebSocket server");
   document.getElementById("info").innerText = "Connected to the Server";
-  show(roomsContainer);
+  show(lobbyContainer);
   pollRoomsList();
 });
 
