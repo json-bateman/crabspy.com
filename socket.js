@@ -87,7 +87,7 @@ join.addEventListener('click', () => {
     return;
   }
 
-  currentRoom = roomName;
+  currentRoom = roomName.toLowerCase();
   socket.emit('room/join', currentRoom);
 });
 
