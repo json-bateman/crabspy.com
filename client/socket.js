@@ -33,9 +33,9 @@ function appendRow(tParent, el1, el2, c1, c2) {
 }
 
 // Server
-const socket = io("wss://crabspy.com");
+//const socket = io("wss://crabspy.com");
 // Testing
-//const socket = io('ws://localhost:55577');
+const socket = io('ws://localhost:55577');
 
 // Grab all the elements, jank style
 const join = document.getElementById("join-room");
@@ -57,7 +57,7 @@ const changeName = document.getElementById("change-name");
 const nameInput = document.getElementById("name-input");
 
 let gameStates = {};
-const gameTimer = new GameTimer(gameTimer);
+const gameTimer = new GameTimer(timer);
 
 // Log connection status
 socket.on("connect", () => {
@@ -137,16 +137,16 @@ socket.on("room/gameStarted", ({ gameState }) => {
 });
 
 socket.on("room/resume", ({ gameState }) => {
-  stopBtn.style.display = "block";
+  stopBtn.style.display = "inline-block";
   resumeBtn.style.display = "none";
-  stopBtn.gameTimer.setTime(gameState.timer);
+  gameTimer.setTime(gameState.timer);
   gameTimer.start();
 });
 
 socket.on("room/stop", () => {
   stopBtn.style.display = "none";
-  resumeBtn.style.display = "block";
-  stopBtn.gameTimer.pause();
+  resumeBtn.style.display = "inline-block";
+  gameTimer.pause();
 });
 
 socket.on("room/gameReset", ({ gameState }) => {
