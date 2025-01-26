@@ -1,127 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CrabSpy</title>
+    <link rel="icon" type="image/x-icon" href="./public/crabspy.png" />
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CrabSpy</title>
-  <link rel="icon" type="image/x-icon" href="./public/crabspy.png" />
-  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-  <link rel="stylesheet" href="styles.css" />
-</head>
+  <body className="body">
+    <main>
+      <div class="main-container">
+        <h1 class="title">🦀 Crab Spy 🦀</h1>
+        <hr />
 
-<body className="body">
-  <main>
-    <div class="main-container">
-      <h1 class="title">🦀 Crab Spy 🦀</h1>
-      <hr />
-
-      <div class="main-content">
-        <div class="sub-container">
-          <div class="left-side">
-            <span class="subtitle">Current Room: <span id="room-name"></span></span>
-            <div class="join">
-              <input id="room-id" name="room-id" placeholder="room id..." />
-              <button id="join-room">Join</button>
+        <div class="main-content">
+          <div class="sub-container">
+            <div class="left-side">
+              <div id="room-container" class="display-none">
+                <span class="subtitle"
+                  >Current Room: <span id="room-name"></span
+                ></span>
+                <div><button id="leave-btn">Return to lobby</button></div>
+                <table>
+                  <tbody id="player-table"></tbody>
+                </table>
+                <div class="start-reset">
+                  <button id="start-btn">Start</button>
+                  <button id="stop-btn">Stop</button>
+                  <button id="resume-btn" class="display-none">Resume</button>
+                  <button id="reset-btn">Reset</button>
+                </div>
+              </div>
+              <div id="rooms-container" class="display-none">
+                <div class="join">
+                  <input
+                    id="room-id"
+                    name="room-id"
+                    placeholder="enter room name..."
+                  />
+                  <button id="host-room">Host</button>
+                </div>
+                <table id="rooms-table"></table>
+              </div>
+              <span id="timer"></span>
+              <p id="player"></p>
+              <p class="info" id="info"></p>
+              <p class="info" id="playerId"></p>
+              <br />
+              <div class="flex flex-col">
+                <span class="info" id="error-info"></span>
+                <span class="info" id="game-info"></span>
+              </div>
             </div>
-            <table>
-              <tbody id="player-table"></tbody>
-            </table>
-            <ul id="players-list"></ul>
-
-            <div class="start-reset">
-              <button id="start-btn">Start</button>
-              <button id="stop-btn">Stop</button>
-              <button id="resume-btn" style="display: none">Resume</button>
-              <button id="reset-btn">Reset</button>
-            </div>
-            <span id="timer"></span>
-            <p id="player"></p>
-            <p class="info" id="info"></p>
-            <p class="info" id="playerId"></p>
-            <br />
-            <div class="flex flex-col">
-              <span class="info" id="error-info"></span>
-              <span class="info" id="game-info"></span>
+            <div class="right-side">
+              <div id="splash-container"></div>
             </div>
           </div>
-          <div class="right-side">
-            <div id="splash-container"></div>
+
+          <div id="rules-locations-buttons">
+            <button id="rules" class="collapsible">Rules</button>
+            <button id="possible-locations" class="collapsible">
+              Possible Locations
+            </button>
           </div>
+          <div id="rules-text" style="display: none">
+            <a
+              target="_blank"
+              href="https://cdn.1j1ju.com/medias/99/c4/5e-spyfall-rulebook.pdf"
+              >Spyfall Rulebook PDF</a
+            >
+            <ul class="rule-list">
+              <li>Goal of the Game</li>
+              <ul class="desc">
+                Players take turns asking each other questions about the
+                location. The goal is to identify the spy if you are a non-spy
+                <span>or</span>
+                figure out the location if you are the spy. Non-spies should ask
+                questions that are vague enough to not give away the location,
+                but specific enough to try and identify the spy.
+              </ul>
+              <li>Begin Round</li>
+              <ul class="desc">
+                The most dashing among the group of players asks the first
+                question. They can ask any player any question they like, the
+                person who was asked a question asks the next question to anyone
+                except for the person who just previously asked them a question.
+              </ul>
+              <li>Main Gameplay Loop</li>
+              <ul class="desc">
+                Players continue to ask questions in round robin fashion until
+                they are confident enough to vote on a spy. The gametime
+                defaults to 8 minutes.
+              </ul>
+              <li>Three Ways to End the Round</li>
+              <ol>
+                <li class="three-ways">Time Is Up!</li>
+                <ul class="desc">
+                  When time runs out, each player makes an accusation, starting
+                  with the player who led (the most dashing). The accused cannot
+                  vote, if the vote is not unanimous it proceeds to the next
+                  player until there is a unanimous vote. The spy wins if
+                  everyone has voted and no decision is made, or a non-spy gets
+                  incorrectly accused.
+                </ul>
+                <li class="three-ways">A Player Gets Suspicious</li>
+                <ul class="desc">
+                  Each player may stop the clock once per round and make an
+                  accusation. The accusation is then voted on, the person who is
+                  accused cannot vote. If the vote is unanimous the game ends,
+                  if the spy is accused non-spies win and visa versa. If the
+                  vote is not unanimous the timer is resumed and play continues.
+                </ul>
+                <li class="three-ways">At the Spy's Request</li>
+                <ul class="desc">
+                  The spy may reveal himself and claim the location, if he is
+                  correct he wins, if not the non-spies win.
+                </ul>
+              </ol>
+            </ul>
+          </div>
+          <div style="display: none" id="locations"></div>
         </div>
 
-        <div id="rules-locations-buttons">
-          <button id="rules" class="collapsible">Rules</button>
-          <button id="possible-locations" class="collapsible">
-            Possible Locations
-          </button>
+        <div class="footer">
+          <a
+            href="https://github.com/jacktrusler/crabspy.com"
+            target="_blank"
+            id="github"
+          >
+            <img src="./public/github-icon.png" />
+          </a>
         </div>
-        <div id="rules-text" style="display: none">
-          <a target="_blank" href="https://cdn.1j1ju.com/medias/99/c4/5e-spyfall-rulebook.pdf">Spyfall Rulebook PDF</a>
-          <ul class="rule-list">
-            <li>Goal of the Game</li>
-            <ul class="desc">
-              Players take turns asking each other questions about the
-              location. The goal is to identify the spy if you are a non-spy
-              <span>or</span>
-              figure out the location if you are the spy. Non-spies should ask
-              questions that are vague enough to not give away the location,
-              but specific enough to try and identify the spy.
-            </ul>
-            <li>Begin Round</li>
-            <ul class="desc">
-              The most dashing among the group of players asks the first
-              question. They can ask any player any question they like, the
-              person who was asked a question asks the next question to anyone
-              except for the person who just previously asked them a question.
-            </ul>
-            <li>Main Gameplay Loop</li>
-            <ul class="desc">
-              Players continue to ask questions in round robin fashion until
-              they are confident enough to vote on a spy. The gametime
-              defaults to 8 minutes.
-            </ul>
-            <li>Three Ways to End the Round</li>
-            <ol>
-              <li class="three-ways">Time Is Up!</li>
-              <ul class="desc">
-                When time runs out, each player makes an accusation, starting
-                with the player who led (the most dashing). The accused cannot
-                vote, if the vote is not unanimous it proceeds to the next
-                player until there is a unanimous vote. The spy wins if
-                everyone has voted and no decision is made, or a non-spy gets
-                incorrectly accused.
-              </ul>
-              <li class="three-ways">A Player Gets Suspicious</li>
-              <ul class="desc">
-                Each player may stop the clock once per round and make an
-                accusation. The accusation is then voted on, the person who is
-                accused cannot vote. If the vote is unanimous the game ends,
-                if the spy is accused non-spies win and visa versa. If the
-                vote is not unanimous the timer is resumed and play continues.
-              </ul>
-              <li class="three-ways">At the Spy's Request</li>
-              <ul class="desc">
-                The spy may reveal himself and claim the location, if he is
-                correct he wins, if not the non-spies win.
-              </ul>
-            </ol>
-          </ul>
-        </div>
-        <div style="display: none" id="locations"></div>
       </div>
+    </main>
+  </body>
 
-      <div class="footer">
-        <a href="https://github.com/jacktrusler/crabspy.com" target="_blank" id="github">
-          <img src="./public/github-icon.png" />
-        </a>
-      </div>
-    </div>
-  </main>
-</body>
-
-<script src="/index.js"></script>
-<script src="/client/GameTimer.js"></script>
-<script src="/client/socket.js"></script>
-
+  <script src="/index.js"></script>
+  <script src="/client/GameTimer.js"></script>
+  <script src="/client/socket.js"></script>
 </html>

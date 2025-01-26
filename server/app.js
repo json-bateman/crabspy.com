@@ -29,7 +29,11 @@ io.on("connection", (socket) => {
   console.log("A user connected", socket.id);
 
   // When user hits website, give them the state of all games
-  socket.emit("allGameStates", gameRooms);
+  socket.emit("lobby/roomsList", gameRooms);
+
+  socket.on("lobby/getRooms", () => {
+    socket.emit("lobby/roomsList", gameRooms);
+  });
 
   socket.on("room/join", (room) => {
     console.log(`User ${socket.id} joined room: ${room}`);
@@ -66,9 +70,18 @@ io.on("connection", (socket) => {
 
     io.to(room).emit("room/state", gameRooms[room]);
 
-    socket.emit("room/userInfo", {
+    socket.emit("user/enteredRoom", {
       id: socket.id,
     });
+  });
+
+  socket.on("room/leave", (roomName) => {
+    const room = gameRooms[roomName];
+    if (!room) return;
+    room.players = room.players.filter((id) => id !== socket.id);
+    socket.leave(roomName);
+    socket.emit("room/leave", gameRooms);
+    io.to(roomName).emit("room/state", room);
   });
 
   socket.on("room/start", (roomName) => {
@@ -171,7 +184,6 @@ io.on("connection", (socket) => {
 });
 
 // Emit timers appropriately to every room
-// TODO: Make this client side maybe
 setInterval(() => {
   for (const roomName in gameRooms) {
     const gameState = gameRooms[roomName].gameState;
