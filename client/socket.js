@@ -1,16 +1,6 @@
 const ONE_SECOND = 1000;
 const EIGHT_MINUTES = 8 * 60 * ONE_SECOND;
 
-function secondsToTimeString(seconds) {
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-
-  const formattedMinutes = minutes.toString();
-  const formattedSeconds = remainingSeconds.toString().padStart(2, "0");
-
-  return `${formattedMinutes}:${formattedSeconds}`;
-}
-
 function clearChildren(parentEl) {
   while (parentEl.firstChild) {
     parentEl.removeChild(parentEl.firstChild);
@@ -52,6 +42,7 @@ const join = document.getElementById("join-room");
 const roomId = document.getElementById("room-id");
 const startBtn = document.getElementById("start-btn");
 const stopBtn = document.getElementById("stop-btn");
+const resumeBtn = document.getElementById("resume-btn");
 const resetBtn = document.getElementById("reset-btn");
 const player = document.getElementById("player");
 const info = document.getElementById("info");
@@ -66,6 +57,7 @@ const changeName = document.getElementById("change-name");
 const nameInput = document.getElementById("name-input");
 
 let gameStates = {};
+const gameTimer = new GameTimer(gameTimer);
 
 // Log connection status
 socket.on("connect", () => {
@@ -99,12 +91,10 @@ startBtn.addEventListener("click", () => {
 
 stopBtn.addEventListener("click", () => {
   socket.emit("room/stop", currentRoom);
-  console.log(stopBtn.innerText);
-  if (stopBtn.innerText == "Stop") {
-    stopBtn.innerText = "Resume";
-  } else {
-    stopBtn.innerText = "Stop";
-  }
+});
+
+resumeBtn.addEventListener("click", () => {
+  socket.emit("room/resume", currentRoom);
 });
 
 resetBtn.addEventListener("click", () => {
@@ -141,21 +131,29 @@ socket.on("room/gameStarted", ({ gameState }) => {
     errorInfo.innerText = "";
     startBtn.disabled = true;
     join.disabled = true;
-
-    const startTime = performance.now();
-    const timerInterval = setInterval(() => {
-      const elapsed = performance.now() - startTime;
-      if (elapsed <= EIGHT_MINUTES) {
-      }
-      timer.innerText = secondsToTimeString((EIGHT_MINUTES - elapsed) / 1000);
-    }, ONE_SECOND);
+    gameTimer.setTime(gameState.timer);
+    gameTimer.start();
   }
 });
 
+socket.on("room/resume", ({ gameState }) => {
+  stopBtn.style.display = "block";
+  resumeBtn.style.display = "none";
+  stopBtn.gameTimer.setTime(gameState.timer);
+  gameTimer.start();
+});
+
+socket.on("room/stop", () => {
+  stopBtn.style.display = "none";
+  resumeBtn.style.display = "block";
+  stopBtn.gameTimer.pause();
+});
+
 socket.on("room/gameReset", ({ gameState }) => {
-  timer.innerText = secondsToTimeString(gameState.timer);
   startBtn.disabled = false;
   join.disabled = false;
+  gameTimer.setTime(gameState.timer);
+  gameTimer.pause();
 });
 
 socket.on("room/error", (errorMsg) => {
