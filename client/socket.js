@@ -1,3 +1,6 @@
+const ONE_SECOND = 1000;
+const EIGHT_MINUTES = 8 * 60 * ONE_SECOND;
+
 function secondsToTimeString(seconds) {
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = Math.floor(seconds % 60);
@@ -138,6 +141,14 @@ socket.on("room/gameStarted", ({ gameState }) => {
     errorInfo.innerText = "";
     startBtn.disabled = true;
     join.disabled = true;
+
+    const startTime = performance.now();
+    const timerInterval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      if (elapsed <= EIGHT_MINUTES) {
+      }
+      timer.innerText = secondsToTimeString((EIGHT_MINUTES - elapsed) / 1000);
+    }, ONE_SECOND);
   }
 });
 
