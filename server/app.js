@@ -159,24 +159,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Emit timers appropriately to every room
-// TODO: Make this client side maybe
-setInterval(() => {
-  for (const roomName in gameRooms) {
-    const gameState = gameRooms[roomName].gameState;
-    if (gameState?.started && !gameState.stopped) {
-      gameState.timer--;
-
-      io.to(roomName).emit("room/timer", gameRooms[roomName]);
-
-      if (gameState.timer <= 0) {
-        gameRooms[roomName].gameState.started = false;
-        io.to(roomName).emit("room/state", gameRooms[roomName]);
-      }
-    }
-  }
-}, ONE_SECOND);
-
 // Every minute clean up rooms with no players in them
 setInterval(() => {
   for (const roomName in gameRooms) {
