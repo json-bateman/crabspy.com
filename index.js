@@ -2,6 +2,21 @@
 const storedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "luxury" : "bumblebee";
 document.documentElement.setAttribute('data-theme', storedTheme);
 
+// Change the picture based on the system theme
+const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+const splash = document.getElementById("splash-container");
+const img = document.createElement("img");
+
+if (isDark) {
+  img.src = "./public/crabspy-splash-night.png";
+  splash.appendChild(img)
+} else {
+  img.src = "./public/crabspy-splash-day.png";
+  splash.appendChild(img)
+}
+
+
+
 function appendLocation(tParent, location) {
   const span = document.createElement("span");
   span.textContent = location

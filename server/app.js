@@ -3,9 +3,7 @@ const locationData = require('../locations.json')
 const locations = locationData.locations
 
 const ONE_SECOND = 1000;
-
 const EIGHT_MINUTES = 480;
-
 
 const io = require("socket.io")(http, {
   cors: { origin: "*" }
@@ -155,9 +153,9 @@ io.on("connection", (socket) => {
 });
 
 // Emit timers appropriately to every room
+// TODO: Make this client side maybe
 setInterval(() => {
   for (const roomName in gameRooms) {
-    console.log(gameRooms)
     const gameState = gameRooms[roomName].gameState;
     if (gameState?.started && !gameState.stopped) {
       gameState.timer--

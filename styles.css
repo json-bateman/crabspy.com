@@ -248,7 +248,7 @@ li:last-child {
   display: flex;
 }
 
-.splash-container {
+#splash-container {
   display: flex;
   justify-content: center;
   align-items: center;
