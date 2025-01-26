@@ -106,7 +106,7 @@ function pollRoomsList() {
 // Server
 const socket = io("wss://crabspy.com");
 // Testing
-// const socket = io("ws://localhost:55577");
+//const socket = io("ws://localhost:55577");
 
 // Grab all the elements, jank style
 const hostBtn = document.getElementById("host-room");
@@ -215,7 +215,6 @@ socket.on("room/gameStarted", ({ gameState }) => {
   if (gameState.started) {
     errorInfo.innerText = "";
     startBtn.disabled = true;
-    join.disabled = true;
     gameTimer.setTime(gameState.timer);
     gameTimer.start();
   }
@@ -236,7 +235,6 @@ socket.on("room/stop", () => {
 
 socket.on("room/gameReset", ({ gameState }) => {
   startBtn.disabled = false;
-  join.disabled = false;
   gameTimer.setTime(gameState.timer);
   gameTimer.pause();
 });
