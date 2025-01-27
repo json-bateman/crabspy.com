@@ -196,13 +196,13 @@ setInterval(() => {
   }
 }, ONE_SECOND);
 
-// Every minute clean up rooms with no players in them
+// Every 5 seconds clean up rooms with no players in them
 setInterval(() => {
   for (const roomName in gameRooms) {
     if (gameRooms[roomName].players.length === 0) {
       delete gameRooms[roomName];
     }
   }
-}, ONE_SECOND * 60);
+}, ONE_SECOND * 5);
 
 http.listen(55577, () => console.log("Listening on port 55577"));
