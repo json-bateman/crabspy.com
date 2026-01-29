@@ -1,0 +1,38 @@
+version: '3'
+
+tasks: 
+  templ:watch:
+    desc: Watch templ files and regenerate
+    cmd: templ generate --watch
+
+  go:watch:
+    desc: Watch Go files and restart server
+    cmd: air
+
+  templ:build:
+    desc: Generate templ files
+    cmd: templ generate
+  go:build:
+    desc: Build for production
+    deps: [templ:build]
+    cmds:
+      - mkdir -p ./release
+      - go build -o ./release/watchma ./cmd/main.go
+      - echo "Release built in ./release/"
+
+  clean:
+    desc: Clean build artifacts (including database)
+    cmds:
+      - rm -rf ./tmp
+      - rm -rf ./release
+      - find . -name "*_templ.go" -delete
+      - rm -rf ./data
+
+  default:
+    desc: Run and watch with air
+    cmds:
+      - sqlc generate
+      - air
+
+
+

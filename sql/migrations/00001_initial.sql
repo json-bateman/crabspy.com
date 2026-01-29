@@ -3,8 +3,7 @@ CREATE TABLE users (
   id INTEGER PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
   display_name TEXT NOT NULL,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  last_seen_at INTEGER NOT NULL DEFAULT (unixepoch())
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE rooms (

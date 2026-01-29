@@ -1,0 +1,18 @@
+package web 
+
+templ Home() {
+	@Base("Crabspy") {
+		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text mb-4">
+			<span class="font-bold text-shadow-hard">Crabspy</span>
+		</div>
+		<div class="flex justify-center gap-4 mb-4">
+			<a href="host" class="btn-accent">Host Room</a>
+			<a href="join" class="btn-accent">Join Room</a>
+		</div>
+		<div class="flex justify-center">
+			<div class="splash-container">
+				<img src={ StaticPath("crabspy-splash-cs.png") }/>
+			</div>
+		</div>
+	}
+}

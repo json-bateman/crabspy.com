@@ -1,0 +1,18 @@
+package web
+
+templ Base(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			<link rel="icon" type="image/x-icon" href={ StaticPath("crabspy.png") }/>
+			<link href={ StaticPath("css/main.css") } rel="stylesheet"/>
+		</head>
+		<body>
+			<!-- Content -->
+			{ children... }
+		</body>
+	</html>
+}

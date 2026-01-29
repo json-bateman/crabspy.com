@@ -1,0 +1,10 @@
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+args_bin = []
+bin = "tmp/crabspy"
+cmd = "templ generate && go build -o tmp/crabspy ./cmd"
+include_ext = ["go", "templ", "html", "css"]
+exclude_regex = ["_templ\\.go$"]

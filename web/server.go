@@ -29,13 +29,26 @@ func setupRoutes() chi.Router {
 
 	r.Handle("/static/*", hashfs.FileServer(StaticSys))
 	r.Get("/", home())
+	r.Get("/host", host())
+	r.Get("/join", join())
 
 	return r
 }
 
 func home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "web/index.html")
+		Home().Render(r.Context(), w)
+	}
+}
+
+func host() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		Host().Render(r.Context(), w)
+	}
+}
+func join() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		Join().Render(r.Context(), w)
 	}
 }
 
