@@ -183,7 +183,13 @@ func login(db *sql.DB) http.HandlerFunc {
 			sse.PatchElementTempl(common.Error("Username or password is incorrect."))
 			return
 		}
-		session, _ := Session.Get(r, "crabspy_session")
+		session, err := Session.Get(r, "crabspy_session")
+		if err != nil {
+			sse := datastar.NewSSE(w, r)
+			slog.Error("Problem logging in", "err", err)
+			sse.PatchElementTempl(common.Error("Problem logging in"))
+			return
+		}
 		session.Options.HttpOnly = true
 		session.Options.SameSite = http.SameSiteLaxMode
 		session.Values["userID"] = user.ID
@@ -201,9 +207,9 @@ const userIDKey contextKey = "userID"
 func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, _ := Session.Get(r, "crabspy_session")
-		userID, ok := session.Values["userID"].(int)
+		userID, ok := session.Values["userID"].(int64)
 		if !ok {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			slog.Error("requireAuth failed.", "userID", userID)
 			return
 		}
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
