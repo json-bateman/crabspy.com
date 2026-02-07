@@ -52,8 +52,7 @@ func setupRoutes(db *sql.DB) chi.Router {
 	r.Post("/validate/signup", validateSignup(db))
 	r.Post("/signup", signup(db))
 	r.Post("/login", login(db))
-	// r.Post("/logout", handleLogout())
-	// r.Post("/validate", validatePassword())
+	r.Post("/logout", logout())
 
 	r.Handle("/static/*", hashfs.FileServer(StaticSys))
 
@@ -143,7 +142,8 @@ func signup(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		slog.Info("New user created", "username", signals.Username)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		sse := datastar.NewSSE(w, r)
+		sse.Redirect("/login")
 	}
 }
 
@@ -158,8 +158,6 @@ func login(db *sql.DB) http.HandlerFunc {
 		var signals Signals
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
 			slog.Error("Error decoding signals", "Error", err)
-			sse := datastar.NewSSE(w, r)
-			sse.PatchElementTempl(common.Error("Error Decoding."))
 			return
 		}
 
@@ -179,10 +177,11 @@ func login(db *sql.DB) http.HandlerFunc {
 
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(signals.Password)); err != nil {
 			sse := datastar.NewSSE(w, r)
-			slog.Error("Error fetching user from DB", "err", err)
+			slog.Error("Invalid password attempt", "username", user.Username)
 			sse.PatchElementTempl(common.Error("Username or password is incorrect."))
 			return
 		}
+
 		session, err := Session.Get(r, "crabspy_session")
 		if err != nil {
 			sse := datastar.NewSSE(w, r)
@@ -196,7 +195,18 @@ func login(db *sql.DB) http.HandlerFunc {
 		session.Save(r, w)
 
 		slog.Info("User logged in", "username", user.Username)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		sse := datastar.NewSSE(w, r)
+		sse.Redirect("/")
+	}
+}
+
+func logout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, _ := Session.Get(r, "crabspy_session")
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		sse := datastar.NewSSE(w, r)
+		sse.Redirect("/login")
 	}
 }
 

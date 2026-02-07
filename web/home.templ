@@ -1,7 +1,10 @@
 package web 
 
+import "crabspy/web/common"
+
 templ Home() {
 	@Base("Crabspy") {
+		@common.Header()
 		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text mb-4">
 			<span class="font-bold text-shadow-hard">Crabspy</span>
 		</div>
