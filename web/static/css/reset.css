@@ -19,11 +19,11 @@ body {
 
 body {
   /* Add accessible line-height */
-  line-height: 1.5;
+  line-height: var(--font-lineheight-3);
   /* Improve text rendering */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-size: 1rem;
+  font-size: var(--font-size-1);
 }
 
 /* Improve media defaults */
@@ -33,7 +33,7 @@ video,
 canvas,
 svg {
   display: block;
-  max-width: 100%;
+  max-inline-size: 100%;
 }
 
 /* Inherit fonts for form controls */
@@ -90,8 +90,8 @@ p {
   -webkit-hyphens: auto;
   -ms-hyphens: auto;
   hyphens: auto;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  margin-top: var(--size-3);
+  margin-bottom: var(--size-3);
 }
 
 /* causes tables to actually look like tables */

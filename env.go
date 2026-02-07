@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Port   int    `envconfig:"PORT" default:"3012"`
-	DBPath string `envconfig:"DB_PATH" default:"./data/crabspy.db"`
+	Port              int    `envconfig:"PORT" default:"3012"`
+	DBPath            string `envconfig:"DB_PATH" default:"./data/crabspy.db"`
+	CookieStoreSecret string `envconfig:"COOKIE_STORE_SECRET_KEY"`
 }
 
 var Env Config
@@ -20,7 +21,7 @@ func LoadSettings() *Config {
 		slog.Warn(".env file not found, using default environment variables instead")
 	}
 
-	if err := envconfig.Process("datastar", &Env); err != nil {
+	if err := envconfig.Process("crabspy", &Env); err != nil {
 		slog.Error("Failed to load environment configuration", "error", err)
 		os.Exit(1)
 	}

@@ -27,7 +27,7 @@ var StaticFS embed.FS
 
 var (
 	StaticSys = hashfs.NewFS(StaticFS)
-	Session   = sessions.NewCookieStore([]byte("alsdjflkasjdflkj"))
+	Session   *sessions.CookieStore
 )
 
 func StaticPath(format string, args ...any) string {
@@ -56,6 +56,7 @@ func setupRoutes(db *sql.DB) chi.Router {
 
 	r.Handle("/static/*", hashfs.FileServer(StaticSys))
 
+	// Authenticated Routes
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
 		r.Get("/", homePage())
@@ -77,7 +78,6 @@ func valid(signals Signals, db *sql.DB) (SignupRules, bool) {
 	ctx := context.Background()
 	_, err := q.GetUserByUsername(ctx, signals.Username)
 	if err == nil {
-		// user exists - username is taken
 		rules.UsernameTaken = true
 	} else if err != sql.ErrNoRows {
 		log.Printf("db error: %v", err)
@@ -246,6 +246,7 @@ func joinPage() http.HandlerFunc {
 
 // RunBlocking sets up routes, starts the server, handles cleanup
 func RunBlocking(setupCtx context.Context, db *sql.DB) error {
+	Session = sessions.NewCookieStore([]byte(crabspy.Env.CookieStoreSecret))
 	router := setupRoutes(db)
 
 	addr := fmt.Sprintf(":%d", crabspy.Env.Port)
@@ -256,7 +257,7 @@ func RunBlocking(setupCtx context.Context, db *sql.DB) error {
 
 	go func() {
 		<-setupCtx.Done()
-		log.Printf("I shutdown lmao")
+		log.Printf("🦀🔍 shutdown")
 		if err := srv.Shutdown(context.Background()); err != nil {
 			log.Printf("Error shutting down server: %v", err)
 		}

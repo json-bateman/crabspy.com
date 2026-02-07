@@ -22,8 +22,8 @@ main {
 }
 
 section {
-  max-width: 1080px;
-  width: 100%;
+  max-inline-size: var(--size-lg);
+  inline-size: 100%;
 }
 
 header {
@@ -43,11 +43,11 @@ footer {
 }
 
 table {
-  width: 100%;
+  inline-size: 100%;
 }
 
 table>tbody>tr {
-  border-bottom: 1px solid hsl(var(--primary), 0.5);
+  border-bottom: var(--border-size-1) solid hsl(var(--primary), 0.5);
 
   &hover {
     background-color: hsl(var(--primary));
@@ -63,14 +63,14 @@ table>tbody>tr:nth-child(even) {
 }
 
 thead {
-  border-top: 1px solid hsl(var(--primary));
-  border-bottom: 1px solid hsl(var(--primary));
+  border-top: var(--border-size-1) solid hsl(var(--primary));
+  border-bottom: var(--border-size-1) solid hsl(var(--primary));
 }
 
 th,
 td {
   text-align: center;
-  padding: 4px 8px;
+  padding: var(--size-px-1) var(--size-px-2);
 }
 
 h1 {

@@ -5,32 +5,39 @@ import "crabspy/web/common"
 templ Login() {
 	@Base("Login") {
 		<section id="loginMorph">
-			<div class="flex-col">
-				<label>Username</label>
-				<input
-					class="input"
-					type="text"
-					required
-					data-bind:username
-					aria-live="polite"
-					aria-describedby="username"
-				/>
+			<div class="flex-col w-full items-center">
+				<div style="inline-size: 120px; block-size: 120px;">
+					<img src={ StaticPath("crabspy-logo.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
+				</div>
+				<h3>We're so back</h3>
+				<span>Don't have an account yet?&nbsp;<a class="text-primary" href="/signup">Signup</a></span>
+				<div class="flex-col mt-4">
+					<label>Username</label>
+					<input
+						class="input"
+						type="text"
+						required
+						data-bind:username
+						aria-live="polite"
+						aria-describedby="username"
+					/>
+				</div>
+				<div class="flex-col mb-2">
+					<label>Password</label>
+					<input
+						class="input"
+						type="password"
+						required
+						data-bind:password
+						aria-live="polite"
+						aria-describedby="password"
+					/>
+				</div>
+				<div>
+					<button class="btn" data-on:click="@post('/login')">Login</button>
+				</div>
+				@common.Error("")
 			</div>
-			<div class="flex-col">
-				<label>Password</label>
-				<input
-					class="input"
-					type="password"
-					required
-					data-bind:password
-					aria-live="polite"
-					aria-describedby="password"
-				/>
-			</div>
-			<div>
-				<button class="btn" data-on:click="@post('/login')">Login</button>
-			</div>
-			@common.Error("")
 		</section>
 	}
 }
