@@ -1,3 +1,12 @@
+/* ~~~~~~~~~~~~~~~~
+   Component Ids 
+~~~~~~~~~~~~~~~~ */
+
+#screen-clamp {
+  inline-size: 100%;
+  max-width: var(--size-lg);
+}
+
 /* ~~~~~~~~~~~~~~~~~~
    Component Classes
 ~~~~~~~~~~~~~~~~~~ */
@@ -72,14 +81,20 @@
 }
 
 .select {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  inline-size: var(--size-13);
+  block-size: var(--size-7);
   background-color: hsl(var(--primary) / 0.05);
+  cursor: pointer;
   color: hsl(var(--text));
   border: var(--border-size-2) solid hsl(var(--primary));
   padding-left: var(--size-1);
   font-size: var(--font-size-3);
-  block-size: var(--size-7);
   box-shadow: var(--shadow-3);
 }
+
 
 .select-sm {
   background-color: hsl(var(--primary) / 0.05);
@@ -91,7 +106,7 @@
 
 /* Table */
 .th-join {
-  padding: var(--size-2);
+  padding: var(--size-1);
   letter-spacing: var(--font-letterspacing-2);
   border-right: var(--border-size-2) solid hsl(var(--background) / 0.5);
 }

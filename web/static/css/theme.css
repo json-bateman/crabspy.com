@@ -1,32 +1,33 @@
 /* HSL values - default to dark theme */
+/* Sandy beach: ocean blues, warm sand, crab red accent */
 :root {
-  --text: 249 32% 92%;
-  --background: 240 28% 7%;
-  --primary: 243 31% 74%;
-  --secondary: 6 31% 33%;
-  --accent: 50 30% 55%;
-  --success: 117 62% 71%;
-  --error: 13 53% 60%;
+  --text: 40 30% 90%;
+  --background: 210 35% 12%;
+  --primary: 200 55% 55%;
+  --secondary: 38 50% 55%;
+  --accent: 5 70% 50%;
+  --success: 160 50% 55%;
+  --error: 0 65% 55%;
 }
 
 :root[data-theme="light"] {
-  --text: 249 32% 8%;
-  --background: 240 28% 93%;
-  --primary: 243 31% 26%;
-  --secondary: 6 31% 67%;
-  --accent: 50 30% 45%;
-  --success: 117 72% 37%;
-  --error: 13 72% 51%;
+  --text: 210 30% 15%;
+  --background: 40 40% 92%;
+  --primary: 200 60% 40%;
+  --secondary: 38 45% 45%;
+  --accent: 5 70% 48%;
+  --success: 160 55% 38%;
+  --error: 0 65% 48%;
 }
 
 :root[data-theme="dark"] {
-  --text: 249 32% 92%;
-  --background: 240 28% 7%;
-  --primary: 243 31% 74%;
-  --secondary: 6 31% 33%;
-  --accent: 50 30% 55%;
-  --success: 117 62% 71%;
-  --error: 13 53% 60%;
+  --text: 40 30% 90%;
+  --background: 210 35% 12%;
+  --primary: 200 55% 55%;
+  --secondary: 38 50% 55%;
+  --accent: 5 70% 50%;
+  --success: 160 50% 55%;
+  --error: 0 65% 55%;
 }
 
 :root {

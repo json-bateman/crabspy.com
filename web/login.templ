@@ -4,7 +4,7 @@ import "crabspy/web/common"
 
 templ Login() {
 	@Base("Login") {
-		<section id="loginMorph">
+		<main id="morphTarget">
 			<div class="flex-col w-full items-center">
 				<div style="inline-size: 120px; block-size: 120px;">
 					<img src={ StaticPath("crabspy-logo.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
@@ -38,6 +38,6 @@ templ Login() {
 				</div>
 				@common.Error("")
 			</div>
-		</section>
+		</main>
 	}
 }

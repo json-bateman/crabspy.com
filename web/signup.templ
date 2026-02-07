@@ -10,7 +10,7 @@ type SignupRules struct {
 
 templ Signup(signupRules SignupRules) {
 	@Base("Signup") {
-		<section id="createUserMorph">
+		<main id="morphTarget">
 			<div class="flex-col w-full items-center">
 				<div style="inline-size: 120px; block-size: 120px;">
 					<img src={ StaticPath("crabspy-logo.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
@@ -62,6 +62,6 @@ templ Signup(signupRules SignupRules) {
 					<a class="btn" href="/login">Login Here</a>
 				}
 			</div>
-		</section>
+		</main>
 	}
 }

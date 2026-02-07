@@ -1,23 +1,84 @@
 package web
 
-templ Join() {
+type Room struct {
+	Players    int
+	Locations  int
+	MaxPlayers int
+	Name       string
+}
+
+templ Join(rooms []Room) {
 	@Base("Join") {
-		<section class="text flex flex-col items-center justify-center">
-			<div class="font-bold text-4xl text-center mb-4">
-				Available Rooms
+		<main id="morphTarget" class="text flex-col items-center justify-center mt-4 p-2">
+			<div style="inline-size: 270px;">
+				<img src={ StaticPath("crab-join.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
 			</div>
-			<div class="shadow-brutalist">
+			<h3>Join a Room</h3>
+			<div
+				class="w-full overflow-hidden shadow-hard"
+			>
 				<table>
-					<thead class="bg-primary text-bg">
+					<thead class="bg-accent">
 						<tr>
 							<th class="th-join">Room Name</th>
-							<th class="th-join">Movies</th>
+							<th class="th-join">Locations</th>
 							<th class="th-join">Players</th>
-							<th class="p-2">Action</th>
+							<th class="p-2" style="letter-spacing: var(--font-letterspacing-2);">Action</th>
 						</tr>
 					</thead>
+					<tbody>
+						if len(rooms) > 0 {
+							for _, room := range rooms {
+								<tr class={ "text-center text-text hover:bg-primary/10 px-4 border-b-2 border-primary/20 transition-colors" }>
+									<td class="py-2 font-bold text-xl">{ room.Name }</td>
+									<td class="py-2 font-bold text-xl">{ room.Locations }</td>
+									<td class="py-2">
+										<div class="flex justify-center items-center">
+											<div class="px-2 text-xl py-1 font-bold">
+												{ room.Players }/{ room.MaxPlayers }
+											</div>
+										</div>
+									</td>
+									<td class="hover:cursor-pointer transition-all py-2">
+										Join 
+									</td>
+								</tr>
+							}
+							<tr>
+								<td class="py-2"></td>
+								<td class="py-2"></td>
+								<td class="py-2"></td>
+								<td class="py-1">
+									<div class="flex text-text justify-center">
+										<a
+											href="/host"
+											class="text-primary text-2xl transition-all"
+										>
+											+	
+										</a>
+									</div>
+								</td>
+							</tr>
+						} else {
+							<tr>
+								<td colspan="4" class="p-8 text-center">
+									<div class="flex flex-col items-center">
+										<div class="text-2xl font-bold text-primary mb-4">
+											No Active Rooms
+										</div>
+										<div class="text-lg mb-6 text-text/80">
+											Be the first to start a movie showdown!
+										</div>
+										<a href="/host" class="btn uppercase tracking-wider">
+											Host New Room
+										</a>
+									</div>
+								</td>
+							</tr>
+						}
+					</tbody>
 				</table>
 			</div>
-		</section>
+		</main>
 	}
 }

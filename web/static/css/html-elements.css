@@ -8,6 +8,7 @@ body {
   font-family: var(--ff-primary);
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 a {
@@ -60,11 +61,6 @@ table>tbody>tr:nth-child(even) {
   &hover {
     background-color: hsl(var(--primary));
   }
-}
-
-thead {
-  border-top: var(--border-size-1) solid hsl(var(--primary));
-  border-bottom: var(--border-size-1) solid hsl(var(--primary));
 }
 
 th,

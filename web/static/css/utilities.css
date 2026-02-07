@@ -47,11 +47,11 @@
 }
 
 .gap-2 {
-  gap: var(--size-px-2)
+  gap: var(--size-px-2);
 }
 
 .gap-4 {
-  gap: var(--size-px-4)
+  gap: var(--size-px-4);
 }
 
 .grid-14 {
@@ -164,7 +164,7 @@
 
 /* Flexbox utilities */
 .flex {
-  display: flex
+  display: flex;
 }
 
 .flex-col {

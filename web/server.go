@@ -220,6 +220,7 @@ func requireAuth(next http.Handler) http.Handler {
 		userID, ok := session.Values["userID"].(int64)
 		if !ok {
 			slog.Error("requireAuth failed.", "userID", userID)
+			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 		}
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
@@ -240,7 +241,8 @@ func hostPage() http.HandlerFunc {
 }
 func joinPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Join().Render(r.Context(), w)
+		rooms := make([]Room, 1)
+		Join(rooms).Render(r.Context(), w)
 	}
 }
 
