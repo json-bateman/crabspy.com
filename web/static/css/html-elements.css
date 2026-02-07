@@ -73,50 +73,6 @@ td {
   padding: 4px 8px;
 }
 
-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--size-1) var(--size-3);
-
-  border-radius: var(--radius-1);
-  background-color: hsl(var(--primary));
-
-  font-weight: var(--font-weight-6);
-  cursor: pointer;
-  transition: background-color .3s;
-  width: 168px;
-
-  &:hover {
-    background-color: hsl(var(--primary), 0.85);
-    border-color: hsl(var(--primary));
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-button.success {
-  background-color: hsl(var(--success));
-
-  &:hover {
-    background-color: hsl(var(--success), 0.85);
-    border-color: hsl(var(--success));
-  }
-}
-
-button.link {
-  background-color: hsl(var(--secondary));
-  color: hsl(var(--background));
-
-  &:hover {
-    background-color: hsl(var(--secondary), 0.85);
-    border-color: hsl(var(--secondary));
-  }
-}
-
 h1 {
   font-size: var(--font-size-8);
 }

@@ -29,6 +29,7 @@ type RoomMember struct {
 type User struct {
 	ID          int64  `json:"id"`
 	Username    string `json:"username"`
+	Password    string `json:"password"`
 	DisplayName string `json:"display_name"`
 	CreatedAt   int64  `json:"created_at"`
 }

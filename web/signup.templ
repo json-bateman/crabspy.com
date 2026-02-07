@@ -1,0 +1,58 @@
+package web
+
+import "crabspy/web/common"
+
+type SignupRules struct {
+	Has8          bool
+	UsernameTaken bool
+	Created       bool
+}
+
+templ Signup(signupRules SignupRules) {
+	@Base("Signup") {
+		<section class="flex-col" id="createUserMorph">
+			<div class="flex-col">
+				<label>Username</label>
+				<input
+					id="username"
+					type="username"
+					name="username"
+					data-bind:username
+					placeholder="Enter username"
+					class="input"
+					data-on:keydown__debounce.500ms="@post('/validate/signup')"
+				/>
+				if signupRules.UsernameTaken {
+					<span class="validation">Username Taken!</span>
+				}
+			</div>
+			<div class="flex-col">
+				<label>Password</label>
+				<input
+					id="password"
+					type="password"
+					name="password"
+					autocomplete="current-password"
+					data-bind:password
+					placeholder="Enter password"
+					class="input"
+					data-on:keydown__debounce.500ms="@post('/validate/signup')"
+				/>
+			</div>
+			if !signupRules.Has8 {
+				<span class="validation">At least 8 characters</span>
+			} else {
+				<span class="validation-success">✓ At least 8 characters</span>
+			}
+			<div>
+				if signupRules.Has8 && !signupRules.UsernameTaken {
+					<button class="btn" data-on:click="@post('/signup')">Signup</button>
+				}
+			</div>
+			@common.Error("")
+			if signupRules.Created {
+				<a class="btn" href="/login">Login Here</a>
+			}
+		</section>
+	}
+}

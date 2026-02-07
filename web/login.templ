@@ -1,0 +1,36 @@
+package web
+
+import "crabspy/web/common"
+
+templ Login() {
+	@Base("Login") {
+		<section id="loginMorph">
+			<div class="flex-col">
+				<label>Username</label>
+				<input
+					class="input"
+					type="text"
+					required
+					data-bind:username
+					aria-live="polite"
+					aria-describedby="username"
+				/>
+			</div>
+			<div class="flex-col">
+				<label>Password</label>
+				<input
+					class="input"
+					type="password"
+					required
+					data-bind:password
+					aria-live="polite"
+					aria-describedby="password"
+				/>
+			</div>
+			<div>
+				<button class="btn" data-on:click="@post('/login')">Login</button>
+			</div>
+			@common.Error("")
+		</section>
+	}
+}

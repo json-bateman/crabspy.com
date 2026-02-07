@@ -3,14 +3,23 @@ package web
 import (
 	"context"
 	"crabspy"
+	"crabspy/sql/sqlcgen"
 	"database/sql"
 	"embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+
+	"crabspy/web/common"
 
 	"github.com/benbjohnson/hashfs"
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/sessions"
+	"github.com/starfederation/datastar-go/datastar"
+	"golang.org/x/crypto/bcrypt"
 )
 
 //go:embed static/*
@@ -18,35 +27,202 @@ var StaticFS embed.FS
 
 var (
 	StaticSys = hashfs.NewFS(StaticFS)
+	Session   = sessions.NewCookieStore([]byte("alsdjflkasjdflkj"))
 )
 
 func StaticPath(format string, args ...any) string {
 	return "/" + StaticSys.HashName(fmt.Sprintf("static/"+format, args...))
 }
 
-func setupRoutes() chi.Router {
+func setupRoutes(db *sql.DB) chi.Router {
 	r := chi.NewRouter()
 
+	// Disable buffering for reverse proxies like NGINX
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Accel-Buffering", "no")
+			next.ServeHTTP(w, r)
+		})
+	})
+
+	// Public web routes
+	r.Get("/signup", signupPage())
+	r.Get("/login", loginPage())
+
+	r.Post("/validate/signup", validateSignup(db))
+	r.Post("/signup", signup(db))
+	r.Post("/login", login(db))
+	// r.Post("/logout", handleLogout())
+	// r.Post("/validate", validatePassword())
+
 	r.Handle("/static/*", hashfs.FileServer(StaticSys))
-	r.Get("/", home())
-	r.Get("/host", host())
-	r.Get("/join", join())
+
+	r.Group(func(r chi.Router) {
+		r.Use(requireAuth)
+		r.Get("/", homePage())
+		r.Get("/host", hostPage())
+		r.Get("/join", joinPage())
+	})
 
 	return r
 }
 
-func home() http.HandlerFunc {
+func valid(signals Signals, db *sql.DB) (SignupRules, bool) {
+	var rules SignupRules
+
+	runes := []rune(signals.Password)
+	n := len(runes)
+	rules.Has8 = n >= 8
+
+	q := sqlcgen.New(db)
+	ctx := context.Background()
+	_, err := q.GetUserByUsername(ctx, signals.Username)
+	if err == nil {
+		// user exists - username is taken
+		rules.UsernameTaken = true
+	} else if err != sql.ErrNoRows {
+		log.Printf("db error: %v", err)
+	}
+	valid := rules.Has8 && !rules.UsernameTaken
+	return rules, valid
+}
+
+type Signals struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func signupPage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		Signup(SignupRules{}).Render(r.Context(), w)
+	}
+}
+
+func validateSignup(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var signals Signals
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			return
+		}
+
+		sse := datastar.NewSSE(w, r)
+		rules, _ := valid(signals, db)
+		sse.PatchElementTempl(Signup(rules))
+	}
+}
+
+func signup(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var signals Signals
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			return
+		}
+
+		fmt.Printf("%+v", signals)
+
+		_, valid := valid(signals, db)
+		if !valid {
+			sse := datastar.NewSSE(w, r)
+			slog.Error("User failed validity check for username/password")
+			sse.PatchElementTempl(common.Error("Invalid Username or Password"))
+			return
+		}
+
+		q := sqlcgen.New(db)
+		ctx := context.Background()
+		hash, _ := bcrypt.GenerateFromPassword([]byte(signals.Password), bcrypt.DefaultCost)
+		_, err := q.CreateUser(ctx, sqlcgen.CreateUserParams{
+			Username:    signals.Username,
+			Password:    string(hash),
+			DisplayName: signals.Username,
+		})
+		if err != nil {
+			sse := datastar.NewSSE(w, r)
+			slog.Error("Error creating user", "err", err)
+			sse.PatchElementTempl(common.Error("Error adding user to DB"))
+			return
+		}
+		slog.Info("New user created", "username", signals.Username)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
+}
+
+func loginPage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		Login().Render(r.Context(), w)
+	}
+}
+
+func login(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var signals Signals
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			slog.Error("Error decoding signals", "Error", err)
+			sse := datastar.NewSSE(w, r)
+			sse.PatchElementTempl(common.Error("Error Decoding."))
+			return
+		}
+
+		q := sqlcgen.New(db)
+		ctx := context.Background()
+		user, err := q.GetUserByUsername(ctx, signals.Username)
+		if err != nil {
+			sse := datastar.NewSSE(w, r)
+			if errors.Is(err, sql.ErrNoRows) {
+				sse.PatchElementTempl(common.Error("Username or password is incorrect."))
+			} else {
+				slog.Error("Error fetching user from DB", "err", err)
+				sse.PatchElementTempl(common.Error("Something went wrong."))
+			}
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(signals.Password)); err != nil {
+			sse := datastar.NewSSE(w, r)
+			slog.Error("Error fetching user from DB", "err", err)
+			sse.PatchElementTempl(common.Error("Username or password is incorrect."))
+			return
+		}
+		session, _ := Session.Get(r, "crabspy_session")
+		session.Options.HttpOnly = true
+		session.Options.SameSite = http.SameSiteLaxMode
+		session.Values["userID"] = user.ID
+		session.Save(r, w)
+
+		slog.Info("User logged in", "username", user.Username)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+type contextKey string
+
+const userIDKey contextKey = "userID"
+
+func requireAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, _ := Session.Get(r, "crabspy_session")
+		userID, ok := session.Values["userID"].(int)
+		if !ok {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func homePage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		Home().Render(r.Context(), w)
 	}
 }
 
-func host() http.HandlerFunc {
+func hostPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		Host().Render(r.Context(), w)
 	}
 }
-func join() http.HandlerFunc {
+func joinPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		Join().Render(r.Context(), w)
 	}
@@ -54,7 +230,7 @@ func join() http.HandlerFunc {
 
 // RunBlocking sets up routes, starts the server, handles cleanup
 func RunBlocking(setupCtx context.Context, db *sql.DB) error {
-	router := setupRoutes()
+	router := setupRoutes(db)
 
 	addr := fmt.Sprintf(":%d", crabspy.Env.Port)
 	srv := http.Server{

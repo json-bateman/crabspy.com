@@ -180,3 +180,15 @@
   width: 100%;
   height: auto;
 }
+
+.validation {
+  color: grey;
+  display: flex;
+  flex-direction: column;
+}
+
+.validation-success {
+  color: green;
+  display: flex;
+  flex-direction: column;
+}
