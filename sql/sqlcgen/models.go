@@ -9,13 +9,14 @@ import (
 )
 
 type Room struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	HostID     int64  `json:"host_id"`
-	MaxPlayers int64  `json:"max_players"`
-	Status     string `json:"status"`
-	IsPrivate  int64  `json:"is_private"`
-	CreatedAt  int64  `json:"created_at"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	HostID       int64  `json:"host_id"`
+	MaxLocations int64  `json:"max_locations"`
+	MaxPlayers   int64  `json:"max_players"`
+	Status       string `json:"status"`
+	IsPrivate    int64  `json:"is_private"`
+	CreatedAt    int64  `json:"created_at"`
 }
 
 type RoomMember struct {

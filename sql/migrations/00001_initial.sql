@@ -11,8 +11,9 @@ CREATE TABLE rooms (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     host_id INTEGER NOT NULL REFERENCES users(id),
-    max_players INTEGER NOT NULL DEFAULT 4,
-    status TEXT NOT NULL DEFAULT 'waiting' CHECK(status IN ('waiting', 'in_progress', 'finished')),
+    max_locations INTEGER NOT NULL DEFAULT 30,
+    max_players INTEGER NOT NULL DEFAULT 8,
+    status TEXT NOT NULL DEFAULT 'lobby' CHECK(status IN ('lobby', 'in_progress', 'finished')),
     is_private INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );

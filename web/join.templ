@@ -1,75 +1,64 @@
 package web
 
-type Room struct {
-	Players    int
-	Locations  int
-	MaxPlayers int
-	Name       string
-}
+import "crabspy/sql/sqlcgen"
 
-templ Join(rooms []Room) {
+templ Join(rooms []sqlcgen.Room) {
 	@Base("Join") {
 		<main id="morphTarget" class="text flex-col items-center justify-center mt-4 p-2">
 			<div style="inline-size: 270px;">
 				<img src={ StaticPath("crab-join.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
 			</div>
-			<h3>Join a Room</h3>
+			<h3 class="mb-3">Join a Room</h3>
 			<div
 				class="w-full overflow-hidden shadow-hard"
 			>
-				<table>
+				<table id="join-table">
 					<thead class="bg-accent">
 						<tr>
 							<th class="th-join">Room Name</th>
 							<th class="th-join">Locations</th>
 							<th class="th-join">Players</th>
-							<th class="p-2" style="letter-spacing: var(--font-letterspacing-2);">Action</th>
+							<th class="p-2">Action</th>
 						</tr>
 					</thead>
 					<tbody>
 						if len(rooms) > 0 {
 							for _, room := range rooms {
-								<tr class={ "text-center text-text hover:bg-primary/10 px-4 border-b-2 border-primary/20 transition-colors" }>
-									<td class="py-2 font-bold text-xl">{ room.Name }</td>
-									<td class="py-2 font-bold text-xl">{ room.Locations }</td>
-									<td class="py-2">
-										<div class="flex justify-center items-center">
-											<div class="px-2 text-xl py-1 font-bold">
-												{ room.Players }/{ room.MaxPlayers }
-											</div>
-										</div>
+								<tr class="tr-join">
+									<td>{ room.Name }</td>
+									<td>{ room.MaxLocations }</td>
+									<td>
+										{ room.MaxPlayers }/{ room.MaxPlayers }
 									</td>
-									<td class="hover:cursor-pointer transition-all py-2">
-										Join 
+									<td class="cursor-pointer">
+										Join
 									</td>
 								</tr>
 							}
-							<tr>
-								<td class="py-2"></td>
-								<td class="py-2"></td>
-								<td class="py-2"></td>
-								<td class="py-1">
-									<div class="flex text-text justify-center">
-										<a
-											href="/host"
-											class="text-primary text-2xl transition-all"
-										>
-											+	
-										</a>
-									</div>
+							<tr class="tr-join">
+								<td></td>
+								<td></td>
+								<td></td>
+								<td>
+									<a
+										href="/host"
+										class="text-primary"
+									>
+										+
+									</a>
 								</td>
 							</tr>
 						} else {
-							<tr>
-								<td colspan="4" class="p-8 text-center">
-									<div class="flex flex-col items-center">
-										<div class="text-2xl font-bold text-primary mb-4">
-											No Active Rooms
+							<tr class="tr-join">
+								<td colspan="4">
+									<div class="flex-col items-center">
+										<div>
+											No Active Crabspy Rooms
 										</div>
-										<div class="text-lg mb-6 text-text/80">
-											Be the first to start a movie showdown!
+										<div class="text-base mb-2">
+											Be the first to host!
 										</div>
-										<a href="/host" class="btn uppercase tracking-wider">
+										<a href="/host" class="hover-accent text-base mb-2">
 											Host New Room
 										</a>
 									</div>

@@ -7,6 +7,10 @@
   max-width: var(--size-lg);
 }
 
+#join-table {
+  border: var(--border-size-2) solid hsl(var(--accent));
+}
+
 /* ~~~~~~~~~~~~~~~~~~
    Component Classes
 ~~~~~~~~~~~~~~~~~~ */
@@ -78,6 +82,11 @@
   padding-left: var(--size-1);
   padding-block: var(--size-1);
   block-size: var(--size-7);
+
+  &.input-error {
+    border-color: hsl(var(--error));
+    background-color: hsl(var(--error) / 0.05)
+  }
 }
 
 .select {
@@ -108,7 +117,23 @@
 .th-join {
   padding: var(--size-1);
   letter-spacing: var(--font-letterspacing-2);
-  border-right: var(--border-size-2) solid hsl(var(--background) / 0.5);
+  border-right: var(--border-size-2) solid hsl(var(--primary) / 0.5);
+}
+
+.tr-join {
+  text-align: center;
+  font-weight: var(--font-weight-7);
+  font-size: var(--font-size-3);
+  border-bottom: var(--border-size-2) solid hsl(var(--accent));
+}
+
+/* Text */
+.hover-accent {
+  color: hsl(var(--accent));
+
+  &:hover {
+    color: hsl(var(--accent) / 0.5);
+  }
 }
 
 /* Loader */

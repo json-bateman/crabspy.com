@@ -1,6 +1,15 @@
 version: '3'
 
 tasks: 
+  sqlc:
+    cmds:
+      - sqlc generate
+    sources:
+      - sql/queries/*.sql
+      - sqlc.yaml
+    generates:
+      - sql/sqlcgen/*.go
+
   templ:watch:
     desc: Watch templ files and regenerate
     cmd: templ generate --watch
@@ -14,7 +23,7 @@ tasks:
     cmd: templ generate
   go:build:
     desc: Build for production
-    deps: [templ:build]
+    deps: [templ:build, sqlc]
     cmds:
       - mkdir -p ./release
       - go build -o ./release/watchma ./cmd/main.go
@@ -30,8 +39,8 @@ tasks:
 
   default:
     desc: Run and watch with air
+    deps: [sqlc]
     cmds:
-      - sqlc generate
       - air
 
 

@@ -22,6 +22,34 @@
   background-color: hsl(var(--accent));
 }
 
+.gap-2 {
+  gap: var(--size-px-2);
+}
+
+.gap-4 {
+  gap: var(--size-px-4);
+}
+
+.grid-14 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--size-px-14), 1fr));
+  grid-gap: var(--size-px-4);
+}
+
+.grid-13 {
+  grid-template-columns: max-content(var(--size-px-13));
+}
+
+/* Text and Typography */
+
+.font-ibm-plex {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.font-ibm-plex-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
 .text {
   color: hsl(var(--text));
 }
@@ -46,31 +74,8 @@
   color: hsl(var(--success));
 }
 
-.gap-2 {
-  gap: var(--size-px-2);
-}
-
-.gap-4 {
-  gap: var(--size-px-4);
-}
-
-.grid-14 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--size-px-14), 1fr));
-  grid-gap: var(--size-px-4);
-}
-
-.grid-13 {
-  grid-template-columns: max-content(var(--size-px-13));
-}
-
-/* Typography */
-.font-ibm-plex {
-  font-family: 'IBM Plex Sans', sans-serif;
-}
-
-.font-ibm-plex-mono {
-  font-family: 'IBM Plex Mono', monospace;
+.text-error {
+  color: hsl(var(--error));
 }
 
 .text-xs {
@@ -123,6 +128,53 @@
 
 .text-center {
   text-align: center;
+}
+
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.lowercase {
+  text-transform: lowercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+.line-through {
+  text-decoration: line-through;
+}
+
+.no-underline {
+  text-decoration: none;
+}
+
+.italic {
+  font-style: italic;
 }
 
 /* Spacing */
@@ -336,52 +388,6 @@
   user-select: text;
 }
 
-/* Text */
-.text-left {
-  text-align: left;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.uppercase {
-  text-transform: uppercase;
-}
-
-.lowercase {
-  text-transform: lowercase;
-}
-
-.capitalize {
-  text-transform: capitalize;
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.whitespace-nowrap {
-  white-space: nowrap;
-}
-
-.underline {
-  text-decoration: underline;
-}
-
-.line-through {
-  text-decoration: line-through;
-}
-
-.no-underline {
-  text-decoration: none;
-}
-
-.italic {
-  font-style: italic;
-}
 
 /* Position */
 .fixed {

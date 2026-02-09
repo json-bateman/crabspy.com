@@ -12,6 +12,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"crabspy/web/common"
 
@@ -61,13 +62,15 @@ func setupRoutes(db *sql.DB) chi.Router {
 		r.Use(requireAuth)
 		r.Get("/", homePage())
 		r.Get("/host", hostPage())
-		r.Get("/join", joinPage())
+		r.Post("/host", host(db))
+		r.Get("/join", joinPage(db))
+		r.Get("/room/:id", roomPage())
 	})
 
 	return r
 }
 
-func valid(signals Signals, db *sql.DB) (SignupRules, bool) {
+func valid(ctx context.Context, signals LoginSignals, db *sql.DB) (SignupRules, bool) {
 	var rules SignupRules
 
 	runes := []rune(signals.Password)
@@ -75,7 +78,6 @@ func valid(signals Signals, db *sql.DB) (SignupRules, bool) {
 	rules.Has8 = n >= 8
 
 	q := sqlcgen.New(db)
-	ctx := context.Background()
 	_, err := q.GetUserByUsername(ctx, signals.Username)
 	if err == nil {
 		rules.UsernameTaken = true
@@ -86,11 +88,6 @@ func valid(signals Signals, db *sql.DB) (SignupRules, bool) {
 	return rules, valid
 }
 
-type Signals struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func signupPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		Signup(SignupRules{}).Render(r.Context(), w)
@@ -99,27 +96,27 @@ func signupPage() http.HandlerFunc {
 
 func validateSignup(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var signals Signals
+		var signals LoginSignals
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
 			return
 		}
 
 		sse := datastar.NewSSE(w, r)
-		rules, _ := valid(signals, db)
+		rules, _ := valid(r.Context(), signals, db)
 		sse.PatchElementTempl(Signup(rules))
 	}
 }
 
 func signup(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var signals Signals
+		var signals LoginSignals
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
 			return
 		}
 
 		fmt.Printf("%+v", signals)
 
-		_, valid := valid(signals, db)
+		_, valid := valid(r.Context(), signals, db)
 		if !valid {
 			sse := datastar.NewSSE(w, r)
 			slog.Error("User failed validity check for username/password")
@@ -128,9 +125,8 @@ func signup(db *sql.DB) http.HandlerFunc {
 		}
 
 		q := sqlcgen.New(db)
-		ctx := context.Background()
 		hash, _ := bcrypt.GenerateFromPassword([]byte(signals.Password), bcrypt.DefaultCost)
-		_, err := q.CreateUser(ctx, sqlcgen.CreateUserParams{
+		_, err := q.CreateUser(r.Context(), sqlcgen.CreateUserParams{
 			Username:    signals.Username,
 			Password:    string(hash),
 			DisplayName: signals.Username,
@@ -149,28 +145,27 @@ func signup(db *sql.DB) http.HandlerFunc {
 
 func loginPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Login().Render(r.Context(), w)
+		Login("").Render(r.Context(), w)
 	}
 }
 
 func login(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var signals Signals
+		var signals LoginSignals
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
 			slog.Error("Error decoding signals", "Error", err)
 			return
 		}
 
 		q := sqlcgen.New(db)
-		ctx := context.Background()
-		user, err := q.GetUserByUsername(ctx, signals.Username)
+		user, err := q.GetUserByUsername(r.Context(), signals.Username)
 		if err != nil {
 			sse := datastar.NewSSE(w, r)
 			if errors.Is(err, sql.ErrNoRows) {
-				sse.PatchElementTempl(common.Error("Username or password is incorrect."))
+				sse.PatchElementTempl(Login("Username or password is incorrect."))
 			} else {
 				slog.Error("Error fetching user from DB", "err", err)
-				sse.PatchElementTempl(common.Error("Something went wrong."))
+				sse.PatchElementTempl(Login("Something went wrong."))
 			}
 			return
 		}
@@ -178,15 +173,15 @@ func login(db *sql.DB) http.HandlerFunc {
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(signals.Password)); err != nil {
 			sse := datastar.NewSSE(w, r)
 			slog.Error("Invalid password attempt", "username", user.Username)
-			sse.PatchElementTempl(common.Error("Username or password is incorrect."))
+			sse.PatchElementTempl(Login("Username or password is incorrect."))
 			return
 		}
 
 		session, err := Session.Get(r, "crabspy_session")
 		if err != nil {
 			sse := datastar.NewSSE(w, r)
-			slog.Error("Problem logging in", "err", err)
-			sse.PatchElementTempl(common.Error("Problem logging in"))
+			slog.Error("Problem getting crabspy_session", "err", err)
+			sse.PatchElementTempl(Login("Problem logging in"))
 			return
 		}
 		session.Options.HttpOnly = true
@@ -239,10 +234,67 @@ func hostPage() http.HandlerFunc {
 		Host().Render(r.Context(), w)
 	}
 }
-func joinPage() http.HandlerFunc {
+
+func host(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rooms := make([]Room, 1)
+		var signals HostSignals
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			slog.Error("Error decoding signals", "Error", err)
+			return
+		}
+
+		userID := r.Context().Value(userIDKey).(int64)
+		sse := datastar.NewSSE(w, r)
+
+		q := sqlcgen.New(db)
+		user, err := q.GetUserById(r.Context(), userID)
+		if err != nil {
+			slog.Error("Error querying user from database.", "Error", err, "UserId", user.ID)
+			sse.PatchElementTempl(common.Error("Error creating room, try logging out and back in."))
+			return
+		}
+
+		maxLocations, err1 := strconv.ParseInt(signals.Locations, 10, 64)
+		maxPlayers, err2 := strconv.ParseInt(signals.MaxPlayers, 10, 64)
+		if err1 != nil || err2 != nil {
+			slog.Error("Error converting string to int in host form.", "Error", err)
+			sse.PatchElementTempl(common.Error("Invalid Input"))
+			return
+		}
+
+		room, err := q.CreateRoom(r.Context(), sqlcgen.CreateRoomParams{
+			HostID:       user.ID,
+			Name:         signals.Name,
+			MaxPlayers:   maxPlayers,
+			MaxLocations: maxLocations,
+		})
+
+		if err != nil {
+			slog.Error("Database error CreateRoom()", "Error", err)
+			sse.PatchElementTempl(common.Error("Server error on Creating Room"))
+			return
+		}
+		slog.Info("Room created", "Room ID", room.ID)
+	}
+}
+
+func joinPage(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := sqlcgen.New(db)
+		rooms, err := q.GetAllRooms(r.Context())
+
+		if err != nil {
+			slog.Error("Error querying GetAllRooms()")
+			return
+		}
+
 		Join(rooms).Render(r.Context(), w)
+	}
+}
+
+func roomPage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		RoomPage(Room{}).Render(r.Context(), w)
 	}
 }
 

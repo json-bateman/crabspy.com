@@ -1,21 +1,29 @@
 package web
 
-import "crabspy/web/common"
-
-templ Login() {
+templ Login(errMsg string) {
 	@Base("Login") {
 		<main id="morphTarget">
 			<div class="flex-col w-full items-center">
 				<div style="inline-size: 120px; block-size: 120px;">
-					<img src={ StaticPath("crabspy-logo.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
+					<img src={ StaticPath("crabspy-login.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
 				</div>
 				<h3>We're so back</h3>
 				<span>Don't have an account yet?&nbsp;<a class="text-primary" href="/signup">Signup</a></span>
 				<div class="flex-col mt-4">
 					<label>Username</label>
 					<input
-						class="input"
+						if errMsg != "" {
+							class="input input-error"
+						} else {
+							class="input"
+						}
 						type="text"
+						data-on:keydown={ `
+                            if (evt.key !== 'Enter' || !$username.trim().length || !$password.trim().length) { 
+                                return; 
+                            };
+                            @post('/login');
+                        ` }
 						required
 						data-bind:username
 						aria-live="polite"
@@ -25,8 +33,18 @@ templ Login() {
 				<div class="flex-col mb-2">
 					<label>Password</label>
 					<input
-						class="input"
+						if errMsg != "" {
+							class="input input-error"
+						} else {
+							class="input"
+						}
 						type="password"
+						data-on:keydown={ `
+                            if (evt.key !== 'Enter' || !$username.trim().length || !$password.trim().length) { 
+                                return; 
+                            };
+                            @post('/login');
+                        ` }
 						required
 						data-bind:password
 						aria-live="polite"
@@ -36,7 +54,9 @@ templ Login() {
 				<div>
 					<button class="btn" data-on:click="@post('/login')">Login</button>
 				</div>
-				@common.Error("")
+				if errMsg != "" {
+					<div class="text-error">{ errMsg }</div>
+				}
 			</div>
 		</main>
 	}

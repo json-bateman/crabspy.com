@@ -12,10 +12,17 @@ templ Host() {
 					<div class="flex-col">
 						<label>Room name</label>
 						<input
+							data-on:keydown={ `
+                                if (evt.key !== 'Enter' || !$roomName.trim().length) { 
+                                    return; 
+                                };
+                                @post('/host');
+                                $roomName = '';
+                            ` }
 							class="input"
 							type="text"
 							required
-							data-bind:roomName
+							data-bind:room-name
 							placeholder="Room Name..."
 							spellcheck="false"
 						/>
@@ -23,27 +30,21 @@ templ Host() {
 					<div class="flex-col">
 						<label>Locations</label>
 						<select class="select" data-bind:locations>
-							<option value="10">10</option>
+							<option value="15">15</option>
 							<option value="20">20</option>
+							<option value="25">20</option>
 							<option selected value="30">30</option>
-							<option value="40">40</option>
-							<option value="50">50</option>
 						</select>
 					</div>
 					<div class="flex-col mb-2">
 						<label>Max players</label>
-						<select class="select" data-bind:maxPlayers>
-							<option value="2">2</option>
+						<select class="select" data-bind:max-players>
 							<option value="3">3</option>
-							<option selected value="4">4</option>
+							<option value="4">4</option>
 							<option value="5">5</option>
 							<option value="6">6</option>
 							<option value="7">7</option>
-							<option value="8">8</option>
-							<option value="9">9</option>
-							<option value="10">10</option>
-							<option value="11">11</option>
-							<option value="12">12</option>
+							<option selected value="8">8</option>
 						</select>
 					</div>
 					<button class="btn" data-on:click="@post('/host')">Host Room</button>
