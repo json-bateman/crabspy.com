@@ -50,32 +50,95 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 
-.color {
+.color-text {
   color: hsl(var(--text));
+}
+
+.hover-text {
+  color: hsl(var(--text));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--text) / 0.8);
+  }
 }
 
 .color-bg {
   color: hsl(var(--background));
 }
 
+.hover-bg {
+  color: hsl(var(--background));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--background) / 0.8);
+  }
+}
+
 .color-primary {
   color: hsl(var(--primary));
+}
+
+.hover-primary {
+  color: hsl(var(--primary));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--primary) / 0.8);
+  }
 }
 
 .color-secondary {
   color: hsl(var(--secondary));
 }
 
+.hover-secondary {
+  color: hsl(var(--secondary));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--secondary) / 0.8);
+  }
+}
+
 .color-accent {
   color: hsl(var(--accent));
+}
+
+.hover-accent {
+  color: hsl(var(--accent));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--accent) / 0.8);
+  }
 }
 
 .color-success {
   color: hsl(var(--success));
 }
 
+.hover-success {
+  color: hsl(var(--success));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--success) / 0.8);
+  }
+}
+
 .color-error {
   color: hsl(var(--error));
+}
+
+.hover-error {
+  color: hsl(var(--error));
+  transition: color 0.3s var(--ease-2);
+
+  &:hover {
+    color: hsl(var(--error) / 0.8);
+  }
 }
 
 .text-xs {
@@ -129,7 +192,6 @@
 .text-center {
   text-align: center;
 }
-
 
 .text-left {
   text-align: left;
@@ -226,6 +288,10 @@
 
 .justify-center {
   justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
 }
 
 .items-center {

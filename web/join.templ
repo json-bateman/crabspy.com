@@ -1,13 +1,17 @@
 package web
 
-import "crabspy/sql/sqlcgen"
-import "fmt"
+import (
+	"crabspy/sql/sqlcgen"
+	"crabspy/web/common"
+	"fmt"
+)
 
 templ Join(rooms []sqlcgen.GetRoomsAndMembersRow) {
 	@Base("Join") {
+		@common.Header()
 		<main
 			id="morphTarget"
-			class="color flex-col items-center justify-center mt-4 p-2"
+			class="flex-col items-center justify-center mt-4 p-2"
 			data-init="@get('/sse/join')"
 		>
 			<div style="inline-size: 270px;">
@@ -16,10 +20,32 @@ templ Join(rooms []sqlcgen.GetRoomsAndMembersRow) {
 					src={ StaticPath("images/crab-join.png") }
 				/>
 			</div>
-			<h3 class="mb-3">Join a Room</h3>
 			<div
 				class="w-full overflow-hidden shadow-hard"
 			>
+				<div class="flex-col items-center gap-2">
+					<h5 class="mb-1">Enter Private Code</h5>
+					<input
+						data-on:keydown={ `
+                if (evt.key !== 'Enter' || !$code.trim().length) { 
+                    return; 
+                };
+                @post('/private');
+            ` }
+						class="input"
+						data-bind:code
+						type="text"
+						name="code"
+						placeholder="Room code..."
+						autocomplete="off"
+					/>
+					<button
+						class="btn btn-accent"
+						data-on:click="if ($code.trim().length) @post('/private')"
+					>Join Private Room</button>
+					@common.Error("")
+				</div>
+				<h5 class="mb-1 mt-3">Or Join a public Room</h5>
 				<table id="join-table">
 					<thead class="bg-accent">
 						<tr>
@@ -39,10 +65,7 @@ templ Join(rooms []sqlcgen.GetRoomsAndMembersRow) {
 										{ room.PlayerCount }/{ room.MaxPlayers }
 									</td>
 									<td class="cursor-pointer">
-										<a
-											class="hover-primary"
-											href={ fmt.Sprintf("/room/%d", room.ID) }
-										>
+										<a class="hover-primary" href={ fmt.Sprintf("/room/%d", room.ID) }>
 											Join
 										</a>
 									</td>
@@ -66,12 +89,12 @@ templ Join(rooms []sqlcgen.GetRoomsAndMembersRow) {
 								<td colspan="4">
 									<div class="flex-col items-center">
 										<div>
-											No Active Crabspy Rooms
+											No <span class="color-primary">Public</span> Crabspy Rooms
 										</div>
 										<div class="text-base mb-2">
 											Be the first to host!
 										</div>
-										<a href="/host" class="hover-accent text-base mb-2">
+										<a href="/host" class="hover-primary text-base mb-2">
 											Host New Room
 										</a>
 									</div>

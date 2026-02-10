@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"crabspy"
+	"crabspy/internal"
 	"crabspy/internal/eventbus"
 	"crabspy/sql/sqlcgen"
 	"database/sql"
@@ -14,6 +15,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"crabspy/web/common"
 
@@ -63,9 +65,11 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Use(requireAuth)
 		r.Get("/", homePage())
 		r.Get("/host", hostPage())
-		r.Post("/host", host(db))
+		r.Post("/host", host(db, bus))
 		r.Get("/join", joinPage(db))
 		r.Get("/room/{id}", roomPage(db))
+		r.Get("/room/{id}/{code}", roomPage(db))
+		r.Post("/private", privateRoom(db))
 
 		r.Get("/sse/join", joinSSE(db, bus))
 	})
@@ -238,7 +242,7 @@ func hostPage() http.HandlerFunc {
 	}
 }
 
-func host(db *sql.DB) http.HandlerFunc {
+func host(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var signals HostSignals
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
@@ -259,10 +263,16 @@ func host(db *sql.DB) http.HandlerFunc {
 
 		maxLocations, err1 := strconv.ParseInt(signals.Locations, 10, 64)
 		maxPlayers, err2 := strconv.ParseInt(signals.MaxPlayers, 10, 64)
-		if err1 != nil || err2 != nil {
+		isPrivate, err3 := strconv.ParseInt(signals.Private, 10, 64)
+		if err1 != nil || err2 != nil || err3 != nil {
 			slog.Error("Error converting string to int in host form.", "Error", err)
 			sse.PatchElementTempl(common.Error("Invalid Input"))
 			return
+		}
+
+		var code sql.NullString
+		if isPrivate == 1 {
+			code = sql.NullString{String: internal.GenerateRoomCode(4), Valid: true}
 		}
 
 		room, err := q.CreateRoom(r.Context(), sqlcgen.CreateRoomParams{
@@ -270,15 +280,26 @@ func host(db *sql.DB) http.HandlerFunc {
 			Name:         signals.Name,
 			MaxPlayers:   maxPlayers,
 			MaxLocations: maxLocations,
+			IsPrivate:    isPrivate,
+			Code:         code,
 		})
 
 		if err != nil {
-			slog.Error("Database error CreateRoom()", "Error", err)
-			sse.PatchElementTempl(common.Error("Server error on Creating Room"))
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				sse.PatchElementTempl(common.Error("Room name already taken."))
+			} else {
+				slog.Error("Database error CreateRoom()", "Error", err)
+				sse.PatchElementTempl(common.Error("Server error on Creating Room"))
+			}
 			return
 		}
 		slog.Info("Room created", "Room ID", room.ID)
-		sse.Redirect(fmt.Sprintf("/room/%d", room.ID))
+		bus.Notify()
+		if room.IsPrivate == 1 {
+			sse.Redirect(fmt.Sprintf("/room/%d/%s", room.ID, room.Code.String))
+		} else {
+			sse.Redirect(fmt.Sprintf("/room/%d", room.ID))
+		}
 	}
 }
 
@@ -286,7 +307,13 @@ func joinPage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := sqlcgen.New(db)
 		rooms, _ := q.GetRoomsAndMembers(r.Context())
-		Join(rooms).Render(r.Context(), w)
+		var publicRooms []sqlcgen.GetRoomsAndMembersRow
+		for _, room := range rooms {
+			if room.IsPrivate != 1 {
+				publicRooms = append(publicRooms, room)
+			}
+		}
+		Join(publicRooms).Render(r.Context(), w)
 	}
 }
 
@@ -326,7 +353,37 @@ func roomPage(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		if room.IsPrivate == 1 {
+			code := chi.URLParam(r, "code")
+			if code != room.Code.String {
+				http.Redirect(w, r, "/join", http.StatusFound)
+				return
+			}
+		}
+
 		RoomPage(room).Render(r.Context(), w)
+	}
+}
+
+func privateRoom(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var signals struct {
+			Code string `json:"code"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			http.Redirect(w, r, "/join", http.StatusFound)
+			return
+		}
+
+		sse := datastar.NewSSE(w, r)
+		q := sqlcgen.New(db)
+		room, err := q.GetRoomByCode(r.Context(), sql.NullString{String: strings.ToUpper(signals.Code), Valid: signals.Code != ""})
+		if err != nil {
+			sse.PatchElementTempl(common.Error("Invalid room code."))
+			return
+		}
+
+		sse.Redirect(fmt.Sprintf("/room/%d/%s", room.ID, room.Code.String))
 	}
 }
 

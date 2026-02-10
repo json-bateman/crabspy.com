@@ -49,18 +49,15 @@ table {
 
 table>tbody>tr {
   border-bottom: var(--border-size-1) solid hsl(var(--primary), 0.5);
+  transition: color 0.3s var(--ease-2);
 
-  &hover {
-    background-color: hsl(var(--primary));
+  &:hover {
+    background-color: hsl(var(--primary)/0.10);
   }
 }
 
-table>tbody>tr:nth-child(even) {
-  background-color: hsl(var(--primary), 0.05);
-
-  &hover {
-    background-color: hsl(var(--primary));
-  }
+table>tbody>tr:nth-child(even):not(:hover) {
+  background-color: hsl(var(--primary) / 0.05);
 }
 
 th,

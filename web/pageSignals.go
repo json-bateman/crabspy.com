@@ -9,4 +9,5 @@ type HostSignals struct {
 	Name       string `json:"roomName"`
 	MaxPlayers string `json:"maxPlayers"`
 	Locations  string `json:"locations"`
+	Private    string `json:"private"`
 }

@@ -11,6 +11,10 @@
   border: var(--border-size-2) solid hsl(var(--accent));
 }
 
+#error {
+  color: hsl(var(--error));
+}
+
 /* ~~~~~~~~~~~~~~~~~~
    Component Classes
 ~~~~~~~~~~~~~~~~~~ */
@@ -113,6 +117,13 @@
   box-shadow: var(--shadow-3);
 }
 
+/* Grid */
+.grid-cols-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--size-px-4);
+}
+
 /* Table */
 .th-join {
   padding: var(--size-1);
@@ -125,15 +136,6 @@
   font-weight: var(--font-weight-7);
   font-size: var(--font-size-3);
   border-bottom: var(--border-size-2) solid hsl(var(--accent));
-}
-
-/* Text */
-.hover-accent {
-  color: hsl(var(--accent));
-
-  &:hover {
-    color: hsl(var(--accent) / 0.5);
-  }
 }
 
 /* Loader */

@@ -9,7 +9,8 @@ CREATE TABLE users (
 
 CREATE TABLE rooms (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
+    code TEXT UNIQUE,
     host_id INTEGER NOT NULL REFERENCES users(id),
     max_locations INTEGER NOT NULL DEFAULT 30,
     max_players INTEGER NOT NULL DEFAULT 8,

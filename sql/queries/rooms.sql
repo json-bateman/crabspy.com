@@ -11,9 +11,9 @@ GROUP BY rooms.id;
 SELECT * FROM rooms WHERE id = ?;
 
 -- name: CreateRoom :one
-INSERT INTO rooms (name, host_id, max_players, max_locations)
-VALUES (?, ?, ?, ?)
+INSERT INTO rooms (name, host_id, max_players, max_locations, is_private, code)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
-
- 
+-- name: GetRoomByCode :one
+SELECT * FROM rooms WHERE code = ?;
