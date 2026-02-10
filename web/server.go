@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"crabspy"
+	"crabspy/internal/eventbus"
 	"crabspy/sql/sqlcgen"
 	"database/sql"
 	"embed"
@@ -35,7 +36,7 @@ func StaticPath(format string, args ...any) string {
 	return "/" + StaticSys.HashName(fmt.Sprintf("static/"+format, args...))
 }
 
-func setupRoutes(db *sql.DB) chi.Router {
+func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 	r := chi.NewRouter()
 
 	// Disable buffering for reverse proxies like NGINX
@@ -64,7 +65,9 @@ func setupRoutes(db *sql.DB) chi.Router {
 		r.Get("/host", hostPage())
 		r.Post("/host", host(db))
 		r.Get("/join", joinPage(db))
-		r.Get("/room/:id", roomPage())
+		r.Get("/room/{id}", roomPage(db))
+
+		r.Get("/sse/join", joinSSE(db, bus))
 	})
 
 	return r
@@ -275,33 +278,63 @@ func host(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		slog.Info("Room created", "Room ID", room.ID)
+		sse.Redirect(fmt.Sprintf("/room/%d", room.ID))
 	}
 }
 
 func joinPage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := sqlcgen.New(db)
-		rooms, err := q.GetAllRooms(r.Context())
-
-		if err != nil {
-			slog.Error("Error querying GetAllRooms()")
-			return
-		}
-
+		rooms, _ := q.GetRoomsAndMembers(r.Context())
 		Join(rooms).Render(r.Context(), w)
 	}
 }
 
-func roomPage() http.HandlerFunc {
+func joinSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		RoomPage(Room{}).Render(r.Context(), w)
+		sse := datastar.NewSSE(w, r)
+
+		q := sqlcgen.New(db)
+		ch := bus.Subscribe()
+		defer bus.Unsubscribe(ch)
+
+		for {
+			select {
+			case <-ch:
+				rooms, _ := q.GetRoomsAndMembers(r.Context())
+				sse.PatchElementTempl(Join(rooms))
+			case <-r.Context().Done():
+				return
+			}
+		}
+	}
+}
+
+func roomPage(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Redirect(w, r, "/join", http.StatusFound)
+			return
+		}
+
+		q := sqlcgen.New(db)
+		room, err := q.GetRoomById(r.Context(), id)
+		if err != nil {
+			http.Redirect(w, r, "/join", http.StatusFound)
+			return
+		}
+
+		RoomPage(room).Render(r.Context(), w)
 	}
 }
 
 // RunBlocking sets up routes, starts the server, handles cleanup
 func RunBlocking(setupCtx context.Context, db *sql.DB) error {
 	Session = sessions.NewCookieStore([]byte(crabspy.Env.CookieStoreSecret))
-	router := setupRoutes(db)
+	bus := eventbus.NewBus()
+	router := setupRoutes(db, bus)
 
 	addr := fmt.Sprintf(":%d", crabspy.Env.Port)
 	srv := http.Server{

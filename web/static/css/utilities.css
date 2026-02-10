@@ -50,31 +50,31 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 
-.text {
+.color {
   color: hsl(var(--text));
 }
 
-.text-bg {
+.color-bg {
   color: hsl(var(--background));
 }
 
-.text-primary {
+.color-primary {
   color: hsl(var(--primary));
 }
 
-.text-secondary {
+.color-secondary {
   color: hsl(var(--secondary));
 }
 
-.text-accent {
+.color-accent {
   color: hsl(var(--accent));
 }
 
-.text-success {
+.color-success {
   color: hsl(var(--success));
 }
 
-.text-error {
+.color-error {
   color: hsl(var(--error));
 }
 
@@ -310,6 +310,10 @@
 /* Layout */
 .w-full {
   inline-size: 100%;
+}
+
+.contain {
+  object-fit: contain;
 }
 
 .relative {

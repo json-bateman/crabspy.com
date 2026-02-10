@@ -1,12 +1,20 @@
 package web
 
 import "crabspy/sql/sqlcgen"
+import "fmt"
 
-templ Join(rooms []sqlcgen.Room) {
+templ Join(rooms []sqlcgen.GetRoomsAndMembersRow) {
 	@Base("Join") {
-		<main id="morphTarget" class="text flex-col items-center justify-center mt-4 p-2">
+		<main
+			id="morphTarget"
+			class="color flex-col items-center justify-center mt-4 p-2"
+			data-init="@get('/sse/join')"
+		>
 			<div style="inline-size: 270px;">
-				<img src={ StaticPath("crab-join.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
+				<img
+					class="w-full contain"
+					src={ StaticPath("images/crab-join.png") }
+				/>
 			</div>
 			<h3 class="mb-3">Join a Room</h3>
 			<div
@@ -28,10 +36,15 @@ templ Join(rooms []sqlcgen.Room) {
 									<td>{ room.Name }</td>
 									<td>{ room.MaxLocations }</td>
 									<td>
-										{ room.MaxPlayers }/{ room.MaxPlayers }
+										{ room.PlayerCount }/{ room.MaxPlayers }
 									</td>
 									<td class="cursor-pointer">
-										Join
+										<a
+											class="hover-primary"
+											href={ fmt.Sprintf("/room/%d", room.ID) }
+										>
+											Join
+										</a>
 									</td>
 								</tr>
 							}
@@ -42,7 +55,7 @@ templ Join(rooms []sqlcgen.Room) {
 								<td>
 									<a
 										href="/host"
-										class="text-primary"
+										class="color-primary"
 									>
 										+
 									</a>

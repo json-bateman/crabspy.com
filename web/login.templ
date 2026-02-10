@@ -5,10 +5,10 @@ templ Login(errMsg string) {
 		<main id="morphTarget">
 			<div class="flex-col w-full items-center">
 				<div style="inline-size: 120px; block-size: 120px;">
-					<img src={ StaticPath("crabspy-login.png") } style="inline-size: 100%; block-size: 100%; object-fit: contain;"/>
+					<img class="w-full contain" src={ StaticPath("images/crabspy-login.png") }/>
 				</div>
 				<h3>We're so back</h3>
-				<span>Don't have an account yet?&nbsp;<a class="text-primary" href="/signup">Signup</a></span>
+				<span>Don't have an account yet?&nbsp;<a class="color-primary" href="/signup">Signup</a></span>
 				<div class="flex-col mt-4">
 					<label>Username</label>
 					<input
@@ -55,7 +55,7 @@ templ Login(errMsg string) {
 					<button class="btn" data-on:click="@post('/login')">Login</button>
 				</div>
 				if errMsg != "" {
-					<div class="text-error">{ errMsg }</div>
+					<div class="color-error">{ errMsg }</div>
 				}
 			</div>
 		</main>

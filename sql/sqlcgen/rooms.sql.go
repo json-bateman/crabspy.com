@@ -78,3 +78,75 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 	}
 	return items, nil
 }
+
+const getRoomById = `-- name: GetRoomById :one
+SELECT id, name, host_id, max_locations, max_players, status, is_private, created_at FROM rooms WHERE id = ?
+`
+
+func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
+	row := q.db.QueryRowContext(ctx, getRoomById, id)
+	var i Room
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.HostID,
+		&i.MaxLocations,
+		&i.MaxPlayers,
+		&i.Status,
+		&i.IsPrivate,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getRoomsAndMembers = `-- name: GetRoomsAndMembers :many
+SELECT rooms.id, rooms.name, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.status, rooms.is_private, rooms.created_at, COUNT(rm.user_id) AS player_count
+FROM rooms
+LEFT JOIN room_members AS rm ON rm.room_id = rooms.id
+GROUP BY rooms.id
+`
+
+type GetRoomsAndMembersRow struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	HostID       int64  `json:"host_id"`
+	MaxLocations int64  `json:"max_locations"`
+	MaxPlayers   int64  `json:"max_players"`
+	Status       string `json:"status"`
+	IsPrivate    int64  `json:"is_private"`
+	CreatedAt    int64  `json:"created_at"`
+	PlayerCount  int64  `json:"player_count"`
+}
+
+func (q *Queries) GetRoomsAndMembers(ctx context.Context) ([]GetRoomsAndMembersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRoomsAndMembers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetRoomsAndMembersRow{}
+	for rows.Next() {
+		var i GetRoomsAndMembersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.HostID,
+			&i.MaxLocations,
+			&i.MaxPlayers,
+			&i.Status,
+			&i.IsPrivate,
+			&i.CreatedAt,
+			&i.PlayerCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
