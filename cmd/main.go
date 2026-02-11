@@ -7,11 +7,17 @@ import (
 	"crabspy/web"
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 	"os/signal"
 	"syscall"
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 

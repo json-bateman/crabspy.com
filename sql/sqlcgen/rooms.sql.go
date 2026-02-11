@@ -128,6 +128,50 @@ func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
 	return i, err
 }
 
+const getRoomMembers = `-- name: GetRoomMembers :many
+SELECT users.id, users.username, users.display_name, rm.is_ready, rm.team
+FROM room_members rm
+JOIN users ON users.id = rm.user_id
+WHERE rm.room_id = ?
+`
+
+type GetRoomMembersRow struct {
+	ID          int64         `json:"id"`
+	Username    string        `json:"username"`
+	DisplayName string        `json:"display_name"`
+	IsReady     int64         `json:"is_ready"`
+	Team        sql.NullInt64 `json:"team"`
+}
+
+func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMembersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRoomMembers, roomID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetRoomMembersRow{}
+	for rows.Next() {
+		var i GetRoomMembersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.DisplayName,
+			&i.IsReady,
+			&i.Team,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRoomsAndMembers = `-- name: GetRoomsAndMembers :many
 SELECT rooms.id, rooms.name, rooms.code, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.status, rooms.is_private, rooms.created_at, COUNT(rm.user_id) AS player_count
 FROM rooms
@@ -180,4 +224,46 @@ func (q *Queries) GetRoomsAndMembers(ctx context.Context) ([]GetRoomsAndMembersR
 		return nil, err
 	}
 	return items, nil
+}
+
+const joinRoom = `-- name: JoinRoom :exec
+INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES (?, ?)
+`
+
+type JoinRoomParams struct {
+	RoomID int64 `json:"room_id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) JoinRoom(ctx context.Context, arg JoinRoomParams) error {
+	_, err := q.db.ExecContext(ctx, joinRoom, arg.RoomID, arg.UserID)
+	return err
+}
+
+const leaveRoom = `-- name: LeaveRoom :exec
+DELETE FROM room_members WHERE room_id = ? AND user_id = ?
+`
+
+type LeaveRoomParams struct {
+	RoomID int64 `json:"room_id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) LeaveRoom(ctx context.Context, arg LeaveRoomParams) error {
+	_, err := q.db.ExecContext(ctx, leaveRoom, arg.RoomID, arg.UserID)
+	return err
+}
+
+const updateRoomHost = `-- name: UpdateRoomHost :exec
+UPDATE rooms SET host_id = ? WHERE id = ?
+`
+
+type UpdateRoomHostParams struct {
+	HostID int64 `json:"host_id"`
+	ID     int64 `json:"id"`
+}
+
+func (q *Queries) UpdateRoomHost(ctx context.Context, arg UpdateRoomHostParams) error {
+	_, err := q.db.ExecContext(ctx, updateRoomHost, arg.HostID, arg.ID)
+	return err
 }

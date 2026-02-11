@@ -11,3 +11,8 @@ type HostSignals struct {
 	Locations  string `json:"locations"`
 	Private    string `json:"private"`
 }
+
+type HostRules struct {
+	NameTooLong bool
+	NameEmpty   bool
+}

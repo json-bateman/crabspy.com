@@ -66,12 +66,14 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Get("/", homePage())
 		r.Get("/host", hostPage())
 		r.Post("/host", host(db, bus))
+		r.Post("/validate/host", validateHost())
 		r.Get("/join", joinPage(db))
 		r.Get("/room/{id}", roomPage(db))
 		r.Get("/room/{id}/{code}", roomPage(db))
 		r.Post("/private", privateRoom(db))
 
 		r.Get("/sse/join", joinSSE(db, bus))
+		r.Get("/sse/room/{id}", roomSSE(db, bus))
 	})
 
 	return r
@@ -144,7 +146,7 @@ func signup(db *sql.DB) http.HandlerFunc {
 			sse.PatchElementTempl(common.Error("Error adding user to DB"))
 			return
 		}
-		slog.Info("New user created", "username", signals.Username)
+		slog.Debug("New user created", "username", signals.Username)
 		sse := datastar.NewSSE(w, r)
 		sse.Redirect("/login")
 	}
@@ -196,7 +198,7 @@ func login(db *sql.DB) http.HandlerFunc {
 		session.Values["userID"] = user.ID
 		session.Save(r, w)
 
-		slog.Info("User logged in", "username", user.Username)
+		slog.Debug("User logged in", "username", user.Username)
 		sse := datastar.NewSSE(w, r)
 		sse.Redirect("/")
 	}
@@ -238,7 +240,22 @@ func homePage() http.HandlerFunc {
 
 func hostPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Host().Render(r.Context(), w)
+		Host(HostRules{NameEmpty: true}).Render(r.Context(), w)
+	}
+}
+
+func validateHost() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var signals HostSignals
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			return
+		}
+		rules := HostRules{
+			NameEmpty:   len(strings.TrimSpace(signals.Name)) == 0,
+			NameTooLong: len([]rune(signals.Name)) > 10,
+		}
+		sse := datastar.NewSSE(w, r)
+		sse.PatchElementTempl(Host(rules))
 	}
 }
 
@@ -293,7 +310,7 @@ func host(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			}
 			return
 		}
-		slog.Info("Room created", "Room ID", room.ID)
+		slog.Debug("Room created", "Room ID", room.ID)
 		bus.Notify()
 		if room.IsPrivate == 1 {
 			sse.Redirect(fmt.Sprintf("/room/%d/%s", room.ID, room.Code.String))
@@ -317,6 +334,71 @@ func joinPage(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		roomID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Redirect(w, r, "/join", http.StatusFound)
+			return
+		}
+		userID := r.Context().Value(userIDKey).(int64)
+
+		q := sqlcgen.New(db)
+		sse := datastar.NewSSE(w, r)
+		ch := bus.Subscribe()
+		defer bus.Unsubscribe(ch)
+
+		if err := q.JoinRoom(r.Context(), sqlcgen.JoinRoomParams{
+			RoomID: roomID,
+			UserID: userID,
+		}); err != nil {
+			slog.Error("Error adding user to room", "err", err, "roomID", roomID, "userID", userID)
+		}
+		bus.Notify()
+		slog.Debug("User joined room", "roomID", roomID, "userID", userID)
+
+		for {
+			select {
+			case <-ch:
+				room, err := q.GetRoomById(r.Context(), roomID)
+				if err != nil {
+					return
+				}
+				members, _ := q.GetRoomMembers(r.Context(), roomID)
+				sse.PatchElementTempl(RoomMembers(room, members))
+			case <-r.Context().Done():
+				if err := q.LeaveRoom(context.Background(), sqlcgen.LeaveRoomParams{
+					RoomID: roomID,
+					UserID: userID,
+				}); err != nil {
+					slog.Error("Error removing user from room", "err", err, "roomID", roomID, "userID", userID)
+				}
+
+				room, _ := q.GetRoomById(context.Background(), roomID)
+				if room.HostID == userID {
+					remaining, _ := q.GetRoomMembers(context.Background(), roomID)
+					if len(remaining) > 0 {
+						newHost := remaining[0]
+						if err := q.UpdateRoomHost(context.Background(), sqlcgen.UpdateRoomHostParams{
+							HostID: newHost.ID,
+							ID:     roomID,
+						}); err != nil {
+							slog.Error("Error transferring host", "err", err)
+						} else {
+							slog.Debug("Host transferred", "roomID", roomID, "newHostID", newHost.ID)
+						}
+					}
+				}
+
+				bus.Notify()
+				slog.Debug("User left room", "roomID", roomID, "userID", userID)
+				return
+			}
+		}
+	}
+}
+
 func joinSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sse := datastar.NewSSE(w, r)
@@ -329,7 +411,13 @@ func joinSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			select {
 			case <-ch:
 				rooms, _ := q.GetRoomsAndMembers(r.Context())
-				sse.PatchElementTempl(Join(rooms))
+				var publicRooms []sqlcgen.GetRoomsAndMembersRow
+				for _, room := range rooms {
+					if room.IsPrivate != 1 {
+						publicRooms = append(publicRooms, room)
+					}
+				}
+				sse.PatchElementTempl(Join(publicRooms))
 			case <-r.Context().Done():
 				return
 			}
@@ -361,7 +449,9 @@ func roomPage(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		RoomPage(room).Render(r.Context(), w)
+		userID := r.Context().Value(userIDKey).(int64)
+		members, _ := q.GetRoomMembers(r.Context(), room.ID)
+		RoomPage(room, members, userID).Render(r.Context(), w)
 	}
 }
 

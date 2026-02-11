@@ -17,3 +17,18 @@ RETURNING *;
 
 -- name: GetRoomByCode :one
 SELECT * FROM rooms WHERE code = ?;
+
+-- name: JoinRoom :exec
+INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES (?, ?);
+
+-- name: LeaveRoom :exec
+DELETE FROM room_members WHERE room_id = ? AND user_id = ?;
+
+-- name: UpdateRoomHost :exec
+UPDATE rooms SET host_id = ? WHERE id = ?;
+
+-- name: GetRoomMembers :many
+SELECT users.id, users.username, users.display_name, rm.is_ready, rm.team
+FROM room_members rm
+JOIN users ON users.id = rm.user_id
+WHERE rm.room_id = ?;
