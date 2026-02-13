@@ -1,105 +1,111 @@
 package web
 
-import (
-	"crabspy/sql/sqlcgen"
-	"fmt"
-)
+import "crabspy/sql/sqlcgen"
+import "fmt"
 
-templ RoomPage(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+templ RoomPage(room sqlcgen.Room, game *sqlcgen.Game, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	@Base(room.Name) {
-		<main id="morphTarget" class="items-center" data-init={ fmt.Sprintf("@get('/sse/room/%d')", room.ID) }>
-			<div class="flex-col max-w-content-3 w-full gap-4 mt-4">
-				<div class="bg border-2 p-4 shadow-hard">
-					<div class="flex flex-wrap justify-between uppercase mb-3">
-						<span class="text-2xl w-full font-bold color-accent">{ room.Name }</span>
-						<div class="flex-col justify-center gap-2">
-							<div class="flex items-center">
-								<span class="color-text">Room Code:&ensp;</span>
-								<span class="font-bold color-accent">{ room.Code }</span>
-							</div>
-							<div class="cursor-pointer" onclick="copyRoomUrl(this)">
-								<div class="flex">
-									<span>Share URL &ensp;</span>
-									<span class="icon-share flex items-center">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="18"
-											height="18"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2.5"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-										>
-											<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-											<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-										</svg>
-									</span>
-									<span class="icon-check items-center hidden">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="18"
-											height="18"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2.5"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-										>
-											<polyline points="20 6 9 17 4 12"></polyline>
-										</svg>
-									</span>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="grid grid-cols-2">
-						<div class="p-3 border-2 bg-primary rounded-2 text-center">
-							<div class="text-sm uppercase font-bold mb-2">Locations</div>
-							<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
-						</div>
-						<div class="p-3 border-2 bg-primary rounded-2 text-center">
-							<div class="text-sm uppercase font-bold mb-2">Max Players</div>
-							<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
-						</div>
-					</div>
-				</div>
-				@RoomMembers(room, members)
-			</div>
+		<main id="morphTarget" class="items-center" data-init={ fmt.Sprintf("@get('/sse/room/%s')", room.Code) }>
+			if room.State == "game" && game != nil {
+				@Game(room, *game, members, playerID)
+			} else {
+				@Lobby(room, members, playerID)
+			}
 		</main>
-		if playerID == room.HostID {
-			<button class="btn btn-accent mt-3">Start Game</button>
-		}
 	}
 }
 
-templ RoomMembers(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow) {
-	<div id="room-members" class="p-4">
-		<div class="text-lg uppercase font-bold mb-3">
-			Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
-		</div>
-		<div class="flex flex-wrap gap-2">
-			for i, m := range members {
-				<div
-					class="relative flex items-center p-2 border-2 rounded-2"
-					style={ getUserColor(m.Username, "border-color") }
-				>
-					<span style={ getUserColor(m.Username, "color") } class="font-bold text-xl">
-						{ m.DisplayName }
-					</span>
-					<img class="w-full contain" style="width: 64px; height: 48px;" src={ StaticPath(fmt.Sprintf("images/player-crabs/%d.png", i)) }/>
-					if m.ID == room.HostID {
-						<span class="host-float">HOST</span>
-					}
+templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+	<div class="flex-col max-w-content-3 w-full gap-4 mt-4">
+		<div class="bg border-2 p-4 shadow-hard">
+			<div class="flex flex-wrap justify-between uppercase mb-3">
+				<span class="text-2xl w-full font-bold color-accent">{ room.Name }</span>
+				<div class="flex-col justify-center gap-2">
+					<div class="flex items-center">
+						<span class="color-text">Room Code:&ensp;</span>
+						<span class="font-bold color-accent">{ room.Code }</span>
+					</div>
+					<div class="cursor-pointer" onclick="copyRoomUrl(this)">
+						<div class="flex">
+							<span>Share URL &ensp;</span>
+							<span class="icon-share flex items-center">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+									<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+								</svg>
+							</span>
+							<span class="icon-check items-center hidden">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<polyline points="20 6 9 17 4 12"></polyline>
+								</svg>
+							</span>
+						</div>
+					</div>
 				</div>
-			}
+			</div>
+			<div class="grid grid-cols-2">
+				<div class="p-3 border-2 bg-primary rounded-2 text-center">
+					<div class="text-sm uppercase font-bold mb-2">Locations</div>
+					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
+				</div>
+				<div class="p-3 border-2 bg-primary rounded-2 text-center">
+					<div class="text-sm uppercase font-bold mb-2">Max Players</div>
+					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
+				</div>
+			</div>
+		</div>
+		<div id="room-members" class="p-4">
+			<div class="text-lg uppercase font-bold mb-3">
+				Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
+			</div>
+			<div class="flex flex-wrap gap-2">
+				for i, m := range members {
+					<div
+						class="relative flex items-center p-2 border-2 rounded-2"
+						style={ getUserColor(m.Username, "border-color") }
+					>
+						<span style={ getUserColor(m.Username, "color") } class="font-bold text-xl">
+							{ m.DisplayName }
+						</span>
+						<img class="w-full contain" style="width: 64px; height: 48px;" src={ StaticPath(fmt.Sprintf("images/player-crabs/%d.png", i)) }/>
+						if m.ID == room.HostID {
+							<span class="host-float">HOST</span>
+						}
+					</div>
+				}
+			</div>
 		</div>
 	</div>
+	if playerID == room.HostID {
+		<button data-on:click={ fmt.Sprintf("@post('/room/%s/start')", room.Code) } class="btn btn-accent mt-3">Start Game</button>
+	}
 }
 
-// getUserColor returns a deterministic color assignment based on username, claude made it don't judge me.
+templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+	<div>Game</div>
+}
+
+// getUserColor returns a deterministic color assignment based on username.
 func getUserColor(username string, css string) templ.SafeCSS {
 	colors := []string{
 		"#ef4444;", // red

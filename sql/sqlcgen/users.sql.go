@@ -43,9 +43,6 @@ WHERE id = ?
 LIMIT 1
 `
 
-// -------
-// READ
-// -------
 func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User

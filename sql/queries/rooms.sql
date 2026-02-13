@@ -1,6 +1,3 @@
----------
--- READ
----------
 -- name: GetAllRooms :many
 SELECT * FROM rooms;
 
@@ -22,6 +19,9 @@ FROM room_members rm
 JOIN users ON users.id = rm.user_id
 WHERE rm.room_id = ?;
 
+-- name: GetGameByRoomID :one
+SELECT * FROM games WHERE room_id = ?;
+
 ---------------------------
 -- CREATE, UPDATE, DELETE
 ---------------------------
@@ -38,4 +38,16 @@ DELETE FROM room_members WHERE room_id = ? AND user_id = ?;
 
 -- name: UpdateRoomHost :exec
 UPDATE rooms SET host_id = ? WHERE id = ?;
+
+-- name: UpdateRoomState :exec
+UPDATE rooms SET state = ? WHERE id = ?;
+
+-- name: UpsertGameForRoom :exec
+INSERT INTO games (room_id, spy_id, location, paused, started_at)
+VALUES (?, ?, ?, 0, unixepoch())
+ON CONFLICT(room_id) DO UPDATE SET
+    spy_id = excluded.spy_id,
+    location = excluded.location,
+    paused = excluded.paused,
+    started_at = excluded.started_at;
 

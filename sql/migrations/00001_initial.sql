@@ -14,7 +14,8 @@ CREATE TABLE rooms (
     host_id INTEGER NOT NULL REFERENCES users(id),
     max_locations INTEGER NOT NULL DEFAULT 30,
     max_players INTEGER NOT NULL DEFAULT 8,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    state TEXT NOT NULL DEFAULT 'lobby' CHECK (state IN ('lobby', 'game'))
 );
 
 CREATE TABLE room_members (
@@ -26,7 +27,7 @@ CREATE TABLE room_members (
     PRIMARY KEY (room_id, user_id)
 );
 
-CREATE TABLE game (
+CREATE TABLE games (
     room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
     spy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     location TEXT NOT NULL,

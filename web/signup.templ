@@ -25,7 +25,7 @@ templ Signup(signupRules SignupRules) {
 						name="username"
 						data-bind:username
 						class="input"
-						data-on:keydown__debounce.500ms="@post('/validate/signup')"
+						data-on:keydown__debounce.300ms="@post('/validate/signup')"
 						aria-live="polite"
 						aria-describedby="username"
 					/>
@@ -42,7 +42,7 @@ templ Signup(signupRules SignupRules) {
 						autocomplete="current-password"
 						data-bind:password
 						class="input"
-						data-on:keydown__debounce.500ms="@post('/validate/signup')"
+						data-on:keydown__debounce.300ms="@post('/validate/signup')"
 						aria-live="polite"
 						aria-describedby="password"
 					/>

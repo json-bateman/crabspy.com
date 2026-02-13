@@ -12,7 +12,7 @@ import (
 const createRoom = `-- name: CreateRoom :one
 INSERT INTO rooms (name, host_id, max_players, max_locations, code)
 VALUES (?, ?, ?, ?, ?)
-RETURNING id, name, code, host_id, max_locations, max_players, created_at
+RETURNING id, name, code, host_id, max_locations, max_players, created_at, state
 `
 
 type CreateRoomParams struct {
@@ -43,17 +43,15 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.MaxLocations,
 		&i.MaxPlayers,
 		&i.CreatedAt,
+		&i.State,
 	)
 	return i, err
 }
 
 const getAllRooms = `-- name: GetAllRooms :many
-SELECT id, name, code, host_id, max_locations, max_players, created_at FROM rooms
+SELECT id, name, code, host_id, max_locations, max_players, created_at, state FROM rooms
 `
 
-// -------
-// READ
-// -------
 func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 	rows, err := q.db.QueryContext(ctx, getAllRooms)
 	if err != nil {
@@ -71,6 +69,7 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 			&i.MaxLocations,
 			&i.MaxPlayers,
 			&i.CreatedAt,
+			&i.State,
 		); err != nil {
 			return nil, err
 		}
@@ -85,8 +84,25 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 	return items, nil
 }
 
+const getGameByRoomID = `-- name: GetGameByRoomID :one
+SELECT room_id, spy_id, location, paused, started_at FROM games WHERE room_id = ?
+`
+
+func (q *Queries) GetGameByRoomID(ctx context.Context, roomID int64) (Game, error) {
+	row := q.db.QueryRowContext(ctx, getGameByRoomID, roomID)
+	var i Game
+	err := row.Scan(
+		&i.RoomID,
+		&i.SpyID,
+		&i.Location,
+		&i.Paused,
+		&i.StartedAt,
+	)
+	return i, err
+}
+
 const getRoomByCode = `-- name: GetRoomByCode :one
-SELECT id, name, code, host_id, max_locations, max_players, created_at FROM rooms WHERE code = ?
+SELECT id, name, code, host_id, max_locations, max_players, created_at, state FROM rooms WHERE code = ?
 `
 
 func (q *Queries) GetRoomByCode(ctx context.Context, code string) (Room, error) {
@@ -100,12 +116,13 @@ func (q *Queries) GetRoomByCode(ctx context.Context, code string) (Room, error) 
 		&i.MaxLocations,
 		&i.MaxPlayers,
 		&i.CreatedAt,
+		&i.State,
 	)
 	return i, err
 }
 
 const getRoomById = `-- name: GetRoomById :one
-SELECT id, name, code, host_id, max_locations, max_players, created_at FROM rooms WHERE id = ?
+SELECT id, name, code, host_id, max_locations, max_players, created_at, state FROM rooms WHERE id = ?
 `
 
 func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
@@ -119,6 +136,7 @@ func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
 		&i.MaxLocations,
 		&i.MaxPlayers,
 		&i.CreatedAt,
+		&i.State,
 	)
 	return i, err
 }
@@ -166,7 +184,7 @@ func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMe
 }
 
 const getRoomsAndMembers = `-- name: GetRoomsAndMembers :many
-SELECT rooms.id, rooms.name, rooms.code, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.created_at, COUNT(rm.user_id) AS player_count
+SELECT rooms.id, rooms.name, rooms.code, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.created_at, rooms.state, COUNT(rm.user_id) AS player_count
 FROM rooms
 LEFT JOIN room_members AS rm ON rm.room_id = rooms.id
 GROUP BY rooms.id
@@ -180,6 +198,7 @@ type GetRoomsAndMembersRow struct {
 	MaxLocations int64  `json:"max_locations"`
 	MaxPlayers   int64  `json:"max_players"`
 	CreatedAt    int64  `json:"created_at"`
+	State        string `json:"state"`
 	PlayerCount  int64  `json:"player_count"`
 }
 
@@ -200,6 +219,7 @@ func (q *Queries) GetRoomsAndMembers(ctx context.Context) ([]GetRoomsAndMembersR
 			&i.MaxLocations,
 			&i.MaxPlayers,
 			&i.CreatedAt,
+			&i.State,
 			&i.PlayerCount,
 		); err != nil {
 			return nil, err
@@ -254,5 +274,40 @@ type UpdateRoomHostParams struct {
 
 func (q *Queries) UpdateRoomHost(ctx context.Context, arg UpdateRoomHostParams) error {
 	_, err := q.db.ExecContext(ctx, updateRoomHost, arg.HostID, arg.ID)
+	return err
+}
+
+const updateRoomState = `-- name: UpdateRoomState :exec
+UPDATE rooms SET state = ? WHERE id = ?
+`
+
+type UpdateRoomStateParams struct {
+	State string `json:"state"`
+	ID    int64  `json:"id"`
+}
+
+func (q *Queries) UpdateRoomState(ctx context.Context, arg UpdateRoomStateParams) error {
+	_, err := q.db.ExecContext(ctx, updateRoomState, arg.State, arg.ID)
+	return err
+}
+
+const upsertGameForRoom = `-- name: UpsertGameForRoom :exec
+INSERT INTO games (room_id, spy_id, location, paused, started_at)
+VALUES (?, ?, ?, 0, unixepoch())
+ON CONFLICT(room_id) DO UPDATE SET
+    spy_id = excluded.spy_id,
+    location = excluded.location,
+    paused = excluded.paused,
+    started_at = excluded.started_at
+`
+
+type UpsertGameForRoomParams struct {
+	RoomID   int64  `json:"room_id"`
+	SpyID    int64  `json:"spy_id"`
+	Location string `json:"location"`
+}
+
+func (q *Queries) UpsertGameForRoom(ctx context.Context, arg UpsertGameForRoomParams) error {
+	_, err := q.db.ExecContext(ctx, upsertGameForRoom, arg.RoomID, arg.SpyID, arg.Location)
 	return err
 }

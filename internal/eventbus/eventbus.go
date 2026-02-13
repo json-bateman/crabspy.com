@@ -3,38 +3,54 @@ package eventbus
 import "sync"
 
 type Bus struct {
-	mu   sync.Mutex
-	subs map[chan struct{}]struct{}
+	mu    sync.Mutex
+	rooms map[string]map[chan struct{}]struct{}
 }
 
 func NewBus() *Bus {
-	// Empty structs takes zero bytes of memory
-	// Which makes them ideal for notifications
-	return &Bus{subs: make(map[chan struct{}]struct{})}
+	return &Bus{
+		rooms: make(map[string]map[chan struct{}]struct{}),
+	}
 }
 
-func (b *Bus) Subscribe() chan struct{} {
+func (b *Bus) SubscribeRoom(code string) chan struct{} {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	if b.rooms[code] == nil {
+		b.rooms[code] = make(map[chan struct{}]struct{})
+	}
+
 	ch := make(chan struct{}, 1)
-	b.subs[ch] = struct{}{}
+	b.rooms[code][ch] = struct{}{}
 	return ch
 }
 
-func (b *Bus) Unsubscribe(ch chan struct{}) {
+func (b *Bus) UnsubscribeRoom(code string, ch chan struct{}) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	delete(b.subs, ch)
+
+	subs := b.rooms[code]
+	if subs == nil {
+		return
+	}
+
+	delete(subs, ch)
 	close(ch)
+
+	if len(subs) == 0 {
+		delete(b.rooms, code)
+	}
 }
 
-func (b *Bus) Notify() {
+func (b *Bus) NotifyRoom(code string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	for ch := range b.subs {
+
+	for ch := range b.rooms[code] {
 		select {
 		case ch <- struct{}{}:
-		default: // don't block if client is slow
+		default:
 		}
 	}
 }

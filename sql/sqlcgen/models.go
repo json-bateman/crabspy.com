@@ -20,6 +20,7 @@ type Room struct {
 	MaxLocations int64  `json:"max_locations"`
 	MaxPlayers   int64  `json:"max_players"`
 	CreatedAt    int64  `json:"created_at"`
+	State        string `json:"state"`
 }
 
 type RoomMember struct {
