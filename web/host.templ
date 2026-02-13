@@ -1,10 +1,10 @@
 package web
 
-import "crabspy/web/common"
+import "crabspy/sql/sqlcgen"
 
-templ Host(rules HostRules) {
+templ Host(rules HostRules, user sqlcgen.User) {
 	@Base("Host") {
-		@common.Header()
+		@Header(user)
 		<main id="morphTarget">
 			<div class="flex-col w-full items-center mt-4">
 				<div style="inline-size: 200px;">
@@ -57,7 +57,7 @@ templ Host(rules HostRules) {
 					if !rules.NameEmpty && !rules.NameTooLong {
 						<button class="btn" data-on:click="@post('/host')">Host Room</button>
 					}
-					@common.Error("")
+					@Error("")
 				</div>
 			</div>
 		</main>

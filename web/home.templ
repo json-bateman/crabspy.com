@@ -1,10 +1,10 @@
 package web 
 
-import "crabspy/web/common"
+import "crabspy/sql/sqlcgen"
 
-templ Home() {
+templ Home(user sqlcgen.User) {
 	@Base("Crabspy") {
-		@common.Header()
+		@Header(user)
 		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text mb-4">
 			<span class="font-bold text-shadow-hard">Crabspy</span>
 		</div>
@@ -36,7 +36,7 @@ templ Home() {
 				class="btn btn-accent"
 				data-on:click="if ($code.trim().length) @post('/private')"
 			>Join Room</button>
-			@common.Error("")
+			@Error("")
 		</div>
 	}
 }

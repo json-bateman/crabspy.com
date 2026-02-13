@@ -214,3 +214,40 @@
   background-color: hsl(var(--background));
   padding-inline: var(--size-1);
 }
+
+/* Dialog */
+.dialog {
+  border: var(--border-size-3) groove hsl(var(--primary));
+  background: hsl(var(--background));
+  color: hsl(var(--text));
+  padding: var(--size-4);
+  border-radius: var(--radius-3);
+  box-shadow: 4px 4px 0px hsl(var(--secondary));
+  inline-size: var(--size-fluid-10);
+}
+
+.dialog::backdrop {
+  background: hsl(0 0% 0% / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-2);
+  margin-bottom: var(--size-3);
+}
+
+.dialog-title {
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-7);
+  letter-spacing: var(--font-letterspacing-2);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-2);
+  margin-top: var(--size-3);
+}

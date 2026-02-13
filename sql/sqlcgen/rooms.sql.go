@@ -142,7 +142,7 @@ func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
 }
 
 const getRoomMembers = `-- name: GetRoomMembers :many
-SELECT users.id, users.username, users.display_name, rm.is_ready
+SELECT users.id, users.username, users.display_name, users.crab_avatar, rm.is_ready
 FROM room_members rm
 JOIN users ON users.id = rm.user_id
 WHERE rm.room_id = ?
@@ -152,6 +152,7 @@ type GetRoomMembersRow struct {
 	ID          int64  `json:"id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
+	CrabAvatar  string `json:"crab_avatar"`
 	IsReady     int64  `json:"is_ready"`
 }
 
@@ -168,6 +169,7 @@ func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMe
 			&i.ID,
 			&i.Username,
 			&i.DisplayName,
+			&i.CrabAvatar,
 			&i.IsReady,
 		); err != nil {
 			return nil, err

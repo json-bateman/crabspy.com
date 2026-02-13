@@ -37,4 +37,5 @@ type User struct {
 	PasswordHash string `json:"password_hash"`
 	DisplayName  string `json:"display_name"`
 	CreatedAt    int64  `json:"created_at"`
+	CrabAvatar   string `json:"crab_avatar"`
 }

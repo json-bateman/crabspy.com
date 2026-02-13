@@ -22,6 +22,7 @@
   background-color: hsl(var(--accent));
 }
 
+
 .gap-2 {
   gap: var(--size-px-2);
 }
@@ -30,6 +31,7 @@
   gap: var(--size-px-4);
 }
 
+/* Grid */
 .grid-14 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--size-px-14), 1fr));
@@ -38,6 +40,42 @@
 
 .grid-13 {
   grid-template-columns: max-content(var(--size-px-13));
+}
+
+.grid {
+  display: grid;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, 1fr);
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-cols-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.grid-rows-1 {
+  grid-template-rows: repeat(1, 1fr);
+}
+
+.grid-rows-2 {
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.grid-rows-3 {
+  grid-template-rows: repeat(3, 1fr);
 }
 
 /* Text and Typography */

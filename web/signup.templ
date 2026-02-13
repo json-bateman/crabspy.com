@@ -1,7 +1,5 @@
 package web
 
-import "crabspy/web/common"
-
 type SignupRules struct {
 	Has8          bool
 	UsernameTaken bool
@@ -57,7 +55,7 @@ templ Signup(signupRules SignupRules) {
 						<button class="btn" data-on:click="@post('/signup')">Signup</button>
 					}
 				</div>
-				@common.Error("")
+				@Error("")
 				if signupRules.Created {
 					<a class="btn" href="/login">Login Here</a>
 				}

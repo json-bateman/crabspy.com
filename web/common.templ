@@ -1,0 +1,70 @@
+package web
+
+import "crabspy/sql/sqlcgen"
+import "fmt"
+import "strings"
+
+templ Header(user sqlcgen.User) {
+	<header>
+		<div class="relative">
+			<span
+				id="userDropdown"
+				data-signals="$showDropdown"
+				data-on:click="$showDropdown=!$showDropdown"
+				class="cursor-pointer"
+			>
+				<img class="w-full contain" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", user.CrabAvatar)) }/>
+			</span>
+			<div class="flex-col absolute mt-1 cursor-pointer">
+				<div
+					id="logout"
+					data-show="$showDropdown"
+					data-on:click="document.getElementById('userDialog').showModal()"
+					class="text-lg color-primary"
+				>
+					Avatar	
+				</div>
+				<div
+					id="logout"
+					data-show="$showDropdown"
+					data-on:click="@post('/logout')"
+					class="text-lg color-primary"
+				>
+					Logout
+				</div>
+			</div>
+		</div>
+		@Dialog("userDialog", "Crab Avatar", UserDialogBody())
+	</header>
+}
+
+templ UserDialogBody() {
+	<div class="grid grid-cols-4 cursor-pointer">
+		for _, crab := range PlayerCrabAvatars {
+			if !strings.Contains(strings.ToLower(crab), "spy") {
+				<img src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", crab)) }/>
+			}
+		}
+	</div>
+}
+
+templ Error(msg string) {
+	<div id="error">{ msg }</div>
+}
+
+templ Dialog(id string, title string, body templ.Component) {
+	<dialog id={ id } class="dialog">
+		<div class="dialog-header">
+			<div class="dialog-title">{ title }</div>
+			<button
+				type="button"
+				class="btn btn-secondary"
+				style="max-inline-size: var(--size-10); min-inline-size: var(--size-10); block-size: var(--size-6);"
+				data-on:click={ fmt.Sprintf("document.getElementById('%s').close()", id) }
+			>
+				Close
+			</button>
+		</div>
+		@body
+	</dialog>
+}

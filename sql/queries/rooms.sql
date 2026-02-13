@@ -14,7 +14,7 @@ SELECT * FROM rooms WHERE id = ?;
 SELECT * FROM rooms WHERE code = ?;
 
 -- name: GetRoomMembers :many
-SELECT users.id, users.username, users.display_name, rm.is_ready
+SELECT users.id, users.username, users.display_name, users.crab_avatar, rm.is_ready
 FROM room_members rm
 JOIN users ON users.id = rm.user_id
 WHERE rm.room_id = ?;

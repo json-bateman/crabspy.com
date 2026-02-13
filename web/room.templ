@@ -79,7 +79,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 				Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
 			</div>
 			<div class="flex flex-wrap gap-2">
-				for i, m := range members {
+				for _, m := range members {
 					<div
 						class="relative flex items-center p-2 border-2 rounded-2"
 						style={ getUserColor(m.Username, "border-color") }
@@ -87,7 +87,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 						<span style={ getUserColor(m.Username, "color") } class="font-bold text-xl">
 							{ m.DisplayName }
 						</span>
-						<img class="w-full contain" style="width: 64px; height: 48px;" src={ StaticPath(fmt.Sprintf("images/player-crabs/%d.png", i)) }/>
+						<img class="w-full contain" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", m.CrabAvatar)) }/>
 						if m.ID == room.HostID {
 							<span class="host-float">HOST</span>
 						}

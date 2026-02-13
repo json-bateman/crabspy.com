@@ -18,8 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"crabspy/web/common"
-
 	"github.com/benbjohnson/hashfs"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
@@ -64,10 +62,10 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 	// Authenticated Routes
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
-		r.Get("/", homePage())
-		r.Get("/host", hostPage())
+		r.Get("/", homePage(db))
+		r.Get("/host", hostPage(db))
 		r.Post("/host", host(db))
-		r.Post("/validate/host", validateHost())
+		r.Post("/validate/host", validateHost(db))
 		r.Get("/room/{code}", roomPage(db, bus))
 		r.Post("/private", privateRoom(db))
 		r.Post("/room/{code}/start", startGame(db, bus))
@@ -133,7 +131,7 @@ func signup(db *sql.DB) http.HandlerFunc {
 		if !valid {
 			sse := datastar.NewSSE(w, r)
 			slog.Error("User failed validity check for username/password")
-			sse.PatchElementTempl(common.Error("Invalid Username or Password"))
+			sse.PatchElementTempl(Error("Invalid Username or Password"))
 			return
 		}
 
@@ -147,7 +145,7 @@ func signup(db *sql.DB) http.HandlerFunc {
 		if err != nil {
 			sse := datastar.NewSSE(w, r)
 			slog.Error("Error creating user", "err", err)
-			sse.PatchElementTempl(common.Error("Error adding user to DB"))
+			sse.PatchElementTempl(Error("Error adding user to DB"))
 			return
 		}
 		slog.Debug("New user created", "username", signals.Username)
@@ -236,30 +234,39 @@ func requireAuth(next http.Handler) http.Handler {
 	})
 }
 
-func homePage() http.HandlerFunc {
+func homePage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Home().Render(r.Context(), w)
+		userID := r.Context().Value(userIDKey).(int64)
+		q := sqlcgen.New(db)
+		user, _ := q.GetUserById(r.Context(), userID)
+		Home(user).Render(r.Context(), w)
 	}
 }
 
-func hostPage() http.HandlerFunc {
+func hostPage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		Host(HostRules{NameEmpty: true}).Render(r.Context(), w)
+		userID := r.Context().Value(userIDKey).(int64)
+		q := sqlcgen.New(db)
+		user, _ := q.GetUserById(r.Context(), userID)
+		Host(HostRules{NameEmpty: true}, user).Render(r.Context(), w)
 	}
 }
 
-func validateHost() http.HandlerFunc {
+func validateHost(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var signals HostSignals
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
 			return
 		}
+		userID := r.Context().Value(userIDKey).(int64)
+		q := sqlcgen.New(db)
+		user, _ := q.GetUserById(r.Context(), userID)
 		rules := HostRules{
 			NameEmpty:   len(strings.TrimSpace(signals.Name)) == 0,
 			NameTooLong: len([]rune(signals.Name)) > 10,
 		}
 		sse := datastar.NewSSE(w, r)
-		sse.PatchElementTempl(Host(rules))
+		sse.PatchElementTempl(Host(rules, user))
 	}
 }
 
@@ -278,7 +285,7 @@ func host(db *sql.DB) http.HandlerFunc {
 		user, err := q.GetUserById(r.Context(), userID)
 		if err != nil {
 			slog.Error("Error querying user from database.", "Error", err, "UserId", user.ID)
-			sse.PatchElementTempl(common.Error("Error creating room, try logging out and back in."))
+			sse.PatchElementTempl(Error("Error creating room, try logging out and back in."))
 			return
 		}
 
@@ -286,7 +293,7 @@ func host(db *sql.DB) http.HandlerFunc {
 		maxPlayers, err2 := strconv.ParseInt(signals.MaxPlayers, 10, 64)
 		if err1 != nil || err2 != nil {
 			slog.Error("Error converting string to int in host form.", "Error", err)
-			sse.PatchElementTempl(common.Error("Invalid Input"))
+			sse.PatchElementTempl(Error("Invalid Input"))
 			return
 		}
 
@@ -301,10 +308,10 @@ func host(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-				sse.PatchElementTempl(common.Error("Room name already taken."))
+				sse.PatchElementTempl(Error("Room name already taken."))
 			} else {
 				slog.Error("Database error CreateRoom()", "Error", err)
-				sse.PatchElementTempl(common.Error("Server error on Creating Room"))
+				sse.PatchElementTempl(Error("Server error on Creating Room"))
 			}
 			return
 		}
@@ -327,7 +334,7 @@ func privateRoom(db *sql.DB) http.HandlerFunc {
 		q := sqlcgen.New(db)
 		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(signals.Code))
 		if err != nil {
-			sse.PatchElementTempl(common.Error("Invalid room code."))
+			sse.PatchElementTempl(Error("Invalid room code."))
 			return
 		}
 
@@ -472,7 +479,7 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 
 		bus.NotifyRoom(room.Code)
 		sse := datastar.NewSSE(w, r)
-		sse.PatchElementTempl(common.Error(""))
+		sse.PatchElementTempl(Error(""))
 	}
 }
 

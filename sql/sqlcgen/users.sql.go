@@ -12,7 +12,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, password_hash, display_name)
 VALUES (?, ?, ?)
-RETURNING id, username, password_hash, display_name, created_at
+RETURNING id, username, password_hash, display_name, created_at, crab_avatar
 `
 
 type CreateUserParams struct {
@@ -33,12 +33,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
+		&i.CrabAvatar,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, username, password_hash, display_name, created_at FROM users
+SELECT id, username, password_hash, display_name, created_at, crab_avatar FROM users
 WHERE id = ?
 LIMIT 1
 `
@@ -52,12 +53,13 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
+		&i.CrabAvatar,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, display_name, created_at FROM users
+SELECT id, username, password_hash, display_name, created_at, crab_avatar FROM users
 WHERE username = ?
 LIMIT 1
 `
@@ -71,6 +73,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
+		&i.CrabAvatar,
 	)
 	return i, err
 }
