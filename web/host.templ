@@ -54,13 +54,6 @@ templ Host(rules HostRules) {
 							<option selected value="8">8</option>
 						</select>
 					</div>
-					<div class="flex-col mb-3">
-						<label>Private?</label>
-						<select class="select" data-bind:private>
-							<option selected value="1">Yes</option>
-							<option value="0">No</option>
-						</select>
-					</div>
 					if !rules.NameEmpty && !rules.NameTooLong {
 						<button class="btn" data-on:click="@post('/host')">Host Room</button>
 					}

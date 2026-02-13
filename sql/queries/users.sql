@@ -1,3 +1,6 @@
+---------
+-- READ
+---------
 -- name: GetUserById :one
 SELECT * FROM users
 WHERE id = ?
@@ -8,7 +11,10 @@ SELECT * FROM users
 WHERE username = ?
 LIMIT 1;
 
+---------------------------
+-- CREATE, UPDATE, DELETE
+---------------------------
 -- name: CreateUser :one
-INSERT INTO users (username, password, display_name)
+INSERT INTO users (username, password_hash, display_name)
 VALUES (?, ?, ?)
 RETURNING *;

@@ -67,13 +67,15 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Get("/host", hostPage())
 		r.Post("/host", host(db, bus))
 		r.Post("/validate/host", validateHost())
-		r.Get("/join", joinPage(db))
-		r.Get("/room/{id}", roomPage(db))
-		r.Get("/room/{id}/{code}", roomPage(db))
+		r.Get("/room/{code}", roomPage(db))
 		r.Post("/private", privateRoom(db))
 
-		r.Get("/sse/join", joinSSE(db, bus))
 		r.Get("/sse/room/{id}", roomSSE(db, bus))
+	})
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		NotFound().Render(r.Context(), w)
 	})
 
 	return r
@@ -136,9 +138,9 @@ func signup(db *sql.DB) http.HandlerFunc {
 		q := sqlcgen.New(db)
 		hash, _ := bcrypt.GenerateFromPassword([]byte(signals.Password), bcrypt.DefaultCost)
 		_, err := q.CreateUser(r.Context(), sqlcgen.CreateUserParams{
-			Username:    signals.Username,
-			Password:    string(hash),
-			DisplayName: signals.Username,
+			Username:     signals.Username,
+			PasswordHash: string(hash),
+			DisplayName:  signals.Username,
 		})
 		if err != nil {
 			sse := datastar.NewSSE(w, r)
@@ -179,7 +181,7 @@ func login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(signals.Password)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(signals.Password)); err != nil {
 			sse := datastar.NewSSE(w, r)
 			slog.Error("Invalid password attempt", "username", user.Username)
 			sse.PatchElementTempl(Login("Username or password is incorrect."))
@@ -280,24 +282,18 @@ func host(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 
 		maxLocations, err1 := strconv.ParseInt(signals.Locations, 10, 64)
 		maxPlayers, err2 := strconv.ParseInt(signals.MaxPlayers, 10, 64)
-		isPrivate, err3 := strconv.ParseInt(signals.Private, 10, 64)
-		if err1 != nil || err2 != nil || err3 != nil {
+		if err1 != nil || err2 != nil {
 			slog.Error("Error converting string to int in host form.", "Error", err)
 			sse.PatchElementTempl(common.Error("Invalid Input"))
 			return
 		}
 
-		var code sql.NullString
-		if isPrivate == 1 {
-			code = sql.NullString{String: internal.GenerateRoomCode(4), Valid: true}
-		}
-
+		code := internal.GenerateRoomCode(4)
 		room, err := q.CreateRoom(r.Context(), sqlcgen.CreateRoomParams{
 			HostID:       user.ID,
 			Name:         signals.Name,
 			MaxPlayers:   maxPlayers,
 			MaxLocations: maxLocations,
-			IsPrivate:    isPrivate,
 			Code:         code,
 		})
 
@@ -310,27 +306,9 @@ func host(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			}
 			return
 		}
-		slog.Debug("Room created", "Room ID", room.ID)
+		slog.Debug("Room created", "Room Code", room.Code)
 		bus.Notify()
-		if room.IsPrivate == 1 {
-			sse.Redirect(fmt.Sprintf("/room/%d/%s", room.ID, room.Code.String))
-		} else {
-			sse.Redirect(fmt.Sprintf("/room/%d", room.ID))
-		}
-	}
-}
-
-func joinPage(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		q := sqlcgen.New(db)
-		rooms, _ := q.GetRoomsAndMembers(r.Context())
-		var publicRooms []sqlcgen.GetRoomsAndMembersRow
-		for _, room := range rooms {
-			if room.IsPrivate != 1 {
-				publicRooms = append(publicRooms, room)
-			}
-		}
-		Join(publicRooms).Render(r.Context(), w)
+		sse.Redirect(fmt.Sprintf("/room/%s", room.Code))
 	}
 }
 
@@ -399,54 +377,15 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	}
 }
 
-func joinSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sse := datastar.NewSSE(w, r)
-
-		q := sqlcgen.New(db)
-		ch := bus.Subscribe()
-		defer bus.Unsubscribe(ch)
-
-		for {
-			select {
-			case <-ch:
-				rooms, _ := q.GetRoomsAndMembers(r.Context())
-				var publicRooms []sqlcgen.GetRoomsAndMembersRow
-				for _, room := range rooms {
-					if room.IsPrivate != 1 {
-						publicRooms = append(publicRooms, room)
-					}
-				}
-				sse.PatchElementTempl(Join(publicRooms))
-			case <-r.Context().Done():
-				return
-			}
-		}
-	}
-}
-
 func roomPage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			http.Redirect(w, r, "/join", http.StatusFound)
-			return
-		}
+		roomCode := chi.URLParam(r, "code")
 
 		q := sqlcgen.New(db)
-		room, err := q.GetRoomById(r.Context(), id)
+		room, err := q.GetRoomByCode(r.Context(), roomCode)
 		if err != nil {
 			http.Redirect(w, r, "/join", http.StatusFound)
 			return
-		}
-
-		if room.IsPrivate == 1 {
-			code := chi.URLParam(r, "code")
-			if code != room.Code.String {
-				http.Redirect(w, r, "/join", http.StatusFound)
-				return
-			}
 		}
 
 		userID := r.Context().Value(userIDKey).(int64)
@@ -467,13 +406,13 @@ func privateRoom(db *sql.DB) http.HandlerFunc {
 
 		sse := datastar.NewSSE(w, r)
 		q := sqlcgen.New(db)
-		room, err := q.GetRoomByCode(r.Context(), sql.NullString{String: strings.ToUpper(signals.Code), Valid: signals.Code != ""})
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(signals.Code))
 		if err != nil {
 			sse.PatchElementTempl(common.Error("Invalid room code."))
 			return
 		}
 
-		sse.Redirect(fmt.Sprintf("/room/%d/%s", room.ID, room.Code.String))
+		sse.Redirect(fmt.Sprintf("/room/%s", room.Code))
 	}
 }
 

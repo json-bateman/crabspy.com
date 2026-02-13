@@ -2,7 +2,7 @@
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
     display_name TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
@@ -10,12 +10,10 @@ CREATE TABLE users (
 CREATE TABLE rooms (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    code TEXT UNIQUE,
+    code TEXT UNIQUE NOT NULL UNIQUE,
     host_id INTEGER NOT NULL REFERENCES users(id),
     max_locations INTEGER NOT NULL DEFAULT 30,
     max_players INTEGER NOT NULL DEFAULT 8,
-    status TEXT NOT NULL DEFAULT 'lobby' CHECK(status IN ('lobby', 'in_progress', 'finished')),
-    is_private INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
@@ -24,9 +22,17 @@ CREATE TABLE room_members (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     joined_at INTEGER NOT NULL DEFAULT (unixepoch()),
     is_ready INTEGER NOT NULL DEFAULT 0,
-    team INTEGER,
+    points INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (room_id, user_id)
 );
 
-CREATE INDEX idx_rooms_status ON rooms(status);
+CREATE TABLE game (
+    room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    spy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    location TEXT NOT NULL,
+    paused INTEGER NOT NULL DEFAULT 0,
+    started_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    PRIMARY KEY (room_id)
+);
+
 CREATE INDEX idx_room_members_user ON room_members(user_id);

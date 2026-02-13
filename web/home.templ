@@ -10,12 +10,33 @@ templ Home() {
 		</div>
 		<div class="flex justify-center gap-4 mb-4">
 			<a href="host" class="btn btn-accent">Host Room</a>
-			<a href="join" class="btn btn-accent">Join Room</a>
 		</div>
 		<div class="flex justify-center mt-4">
 			<div class="splash-container">
 				<img class="w-full contain" src={ StaticPath("images/crab-splash.png") }/>
 			</div>
+		</div>
+		<div class="flex-col items-center gap-2">
+			<h5 class="mb-1">Enter Room Code</h5>
+			<input
+				data-on:keydown={ `
+                if (evt.key !== 'Enter' || !$code.trim().length) { 
+                    return; 
+                };
+                @post('/private');
+            ` }
+				class="input"
+				data-bind:code
+				type="text"
+				name="code"
+				placeholder="Room code..."
+				autocomplete="off"
+			/>
+			<button
+				class="btn btn-accent"
+				data-on:click="if ($code.trim().length) @post('/private')"
+			>Join Room</button>
+			@common.Error("")
 		</div>
 	}
 }

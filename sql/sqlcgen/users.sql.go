@@ -10,24 +10,27 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (username, password, display_name)
+INSERT INTO users (username, password_hash, display_name)
 VALUES (?, ?, ?)
-RETURNING id, username, password, display_name, created_at
+RETURNING id, username, password_hash, display_name, created_at
 `
 
 type CreateUserParams struct {
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	DisplayName string `json:"display_name"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"password_hash"`
+	DisplayName  string `json:"display_name"`
 }
 
+// -------------------------
+// CREATE, UPDATE, DELETE
+// -------------------------
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.Password, arg.DisplayName)
+	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.PasswordHash, arg.DisplayName)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
-		&i.Password,
+		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
 	)
@@ -35,18 +38,21 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, username, password, display_name, created_at FROM users
+SELECT id, username, password_hash, display_name, created_at FROM users
 WHERE id = ?
 LIMIT 1
 `
 
+// -------
+// READ
+// -------
 func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
-		&i.Password,
+		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
 	)
@@ -54,7 +60,7 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password, display_name, created_at FROM users
+SELECT id, username, password_hash, display_name, created_at FROM users
 WHERE username = ?
 LIMIT 1
 `
@@ -65,7 +71,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
-		&i.Password,
+		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
 	)

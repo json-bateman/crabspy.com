@@ -4,34 +4,36 @@
 
 package sqlcgen
 
-import (
-	"database/sql"
-)
+type Game struct {
+	RoomID    int64  `json:"room_id"`
+	SpyID     int64  `json:"spy_id"`
+	Location  string `json:"location"`
+	Paused    int64  `json:"paused"`
+	StartedAt int64  `json:"started_at"`
+}
 
 type Room struct {
-	ID           int64          `json:"id"`
-	Name         string         `json:"name"`
-	Code         sql.NullString `json:"code"`
-	HostID       int64          `json:"host_id"`
-	MaxLocations int64          `json:"max_locations"`
-	MaxPlayers   int64          `json:"max_players"`
-	Status       string         `json:"status"`
-	IsPrivate    int64          `json:"is_private"`
-	CreatedAt    int64          `json:"created_at"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Code         string `json:"code"`
+	HostID       int64  `json:"host_id"`
+	MaxLocations int64  `json:"max_locations"`
+	MaxPlayers   int64  `json:"max_players"`
+	CreatedAt    int64  `json:"created_at"`
 }
 
 type RoomMember struct {
-	RoomID   int64         `json:"room_id"`
-	UserID   int64         `json:"user_id"`
-	JoinedAt int64         `json:"joined_at"`
-	IsReady  int64         `json:"is_ready"`
-	Team     sql.NullInt64 `json:"team"`
+	RoomID   int64 `json:"room_id"`
+	UserID   int64 `json:"user_id"`
+	JoinedAt int64 `json:"joined_at"`
+	IsReady  int64 `json:"is_ready"`
+	Points   int64 `json:"points"`
 }
 
 type User struct {
-	ID          int64  `json:"id"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	DisplayName string `json:"display_name"`
-	CreatedAt   int64  `json:"created_at"`
+	ID           int64  `json:"id"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"password_hash"`
+	DisplayName  string `json:"display_name"`
+	CreatedAt    int64  `json:"created_at"`
 }

@@ -1,0 +1,18 @@
+package web
+
+templ NotFound() {
+	@Base("404") {
+		<section class="flex-col w-full items-center">
+			<div class="mb-4">
+				<div class="flex justify-center color-accent text-4xl">
+					404
+				</div>
+				<div class="text-2xl color-accent">Location Not Found</div>
+				<div class="text-lg text-center">The spy is in another castle.</div>
+			</div>
+			<div class="flex">
+				<a href="/" class="btn btn-accent">Back Home</a>
+			</div>
+		</section>
+	}
+}

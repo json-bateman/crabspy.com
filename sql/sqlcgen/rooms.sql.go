@@ -7,31 +7,31 @@ package sqlcgen
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createRoom = `-- name: CreateRoom :one
-INSERT INTO rooms (name, host_id, max_players, max_locations, is_private, code)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, name, code, host_id, max_locations, max_players, status, is_private, created_at
+INSERT INTO rooms (name, host_id, max_players, max_locations, code)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, name, code, host_id, max_locations, max_players, created_at
 `
 
 type CreateRoomParams struct {
-	Name         string         `json:"name"`
-	HostID       int64          `json:"host_id"`
-	MaxPlayers   int64          `json:"max_players"`
-	MaxLocations int64          `json:"max_locations"`
-	IsPrivate    int64          `json:"is_private"`
-	Code         sql.NullString `json:"code"`
+	Name         string `json:"name"`
+	HostID       int64  `json:"host_id"`
+	MaxPlayers   int64  `json:"max_players"`
+	MaxLocations int64  `json:"max_locations"`
+	Code         string `json:"code"`
 }
 
+// -------------------------
+// CREATE, UPDATE, DELETE
+// -------------------------
 func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, error) {
 	row := q.db.QueryRowContext(ctx, createRoom,
 		arg.Name,
 		arg.HostID,
 		arg.MaxPlayers,
 		arg.MaxLocations,
-		arg.IsPrivate,
 		arg.Code,
 	)
 	var i Room
@@ -42,17 +42,18 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.HostID,
 		&i.MaxLocations,
 		&i.MaxPlayers,
-		&i.Status,
-		&i.IsPrivate,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getAllRooms = `-- name: GetAllRooms :many
-SELECT id, name, code, host_id, max_locations, max_players, status, is_private, created_at FROM rooms
+SELECT id, name, code, host_id, max_locations, max_players, created_at FROM rooms
 `
 
+// -------
+// READ
+// -------
 func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 	rows, err := q.db.QueryContext(ctx, getAllRooms)
 	if err != nil {
@@ -69,8 +70,6 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 			&i.HostID,
 			&i.MaxLocations,
 			&i.MaxPlayers,
-			&i.Status,
-			&i.IsPrivate,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -87,10 +86,10 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 }
 
 const getRoomByCode = `-- name: GetRoomByCode :one
-SELECT id, name, code, host_id, max_locations, max_players, status, is_private, created_at FROM rooms WHERE code = ?
+SELECT id, name, code, host_id, max_locations, max_players, created_at FROM rooms WHERE code = ?
 `
 
-func (q *Queries) GetRoomByCode(ctx context.Context, code sql.NullString) (Room, error) {
+func (q *Queries) GetRoomByCode(ctx context.Context, code string) (Room, error) {
 	row := q.db.QueryRowContext(ctx, getRoomByCode, code)
 	var i Room
 	err := row.Scan(
@@ -100,15 +99,13 @@ func (q *Queries) GetRoomByCode(ctx context.Context, code sql.NullString) (Room,
 		&i.HostID,
 		&i.MaxLocations,
 		&i.MaxPlayers,
-		&i.Status,
-		&i.IsPrivate,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getRoomById = `-- name: GetRoomById :one
-SELECT id, name, code, host_id, max_locations, max_players, status, is_private, created_at FROM rooms WHERE id = ?
+SELECT id, name, code, host_id, max_locations, max_players, created_at FROM rooms WHERE id = ?
 `
 
 func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
@@ -121,26 +118,23 @@ func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
 		&i.HostID,
 		&i.MaxLocations,
 		&i.MaxPlayers,
-		&i.Status,
-		&i.IsPrivate,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getRoomMembers = `-- name: GetRoomMembers :many
-SELECT users.id, users.username, users.display_name, rm.is_ready, rm.team
+SELECT users.id, users.username, users.display_name, rm.is_ready
 FROM room_members rm
 JOIN users ON users.id = rm.user_id
 WHERE rm.room_id = ?
 `
 
 type GetRoomMembersRow struct {
-	ID          int64         `json:"id"`
-	Username    string        `json:"username"`
-	DisplayName string        `json:"display_name"`
-	IsReady     int64         `json:"is_ready"`
-	Team        sql.NullInt64 `json:"team"`
+	ID          int64  `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	IsReady     int64  `json:"is_ready"`
 }
 
 func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMembersRow, error) {
@@ -157,7 +151,6 @@ func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMe
 			&i.Username,
 			&i.DisplayName,
 			&i.IsReady,
-			&i.Team,
 		); err != nil {
 			return nil, err
 		}
@@ -173,23 +166,21 @@ func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMe
 }
 
 const getRoomsAndMembers = `-- name: GetRoomsAndMembers :many
-SELECT rooms.id, rooms.name, rooms.code, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.status, rooms.is_private, rooms.created_at, COUNT(rm.user_id) AS player_count
+SELECT rooms.id, rooms.name, rooms.code, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.created_at, COUNT(rm.user_id) AS player_count
 FROM rooms
 LEFT JOIN room_members AS rm ON rm.room_id = rooms.id
 GROUP BY rooms.id
 `
 
 type GetRoomsAndMembersRow struct {
-	ID           int64          `json:"id"`
-	Name         string         `json:"name"`
-	Code         sql.NullString `json:"code"`
-	HostID       int64          `json:"host_id"`
-	MaxLocations int64          `json:"max_locations"`
-	MaxPlayers   int64          `json:"max_players"`
-	Status       string         `json:"status"`
-	IsPrivate    int64          `json:"is_private"`
-	CreatedAt    int64          `json:"created_at"`
-	PlayerCount  int64          `json:"player_count"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Code         string `json:"code"`
+	HostID       int64  `json:"host_id"`
+	MaxLocations int64  `json:"max_locations"`
+	MaxPlayers   int64  `json:"max_players"`
+	CreatedAt    int64  `json:"created_at"`
+	PlayerCount  int64  `json:"player_count"`
 }
 
 func (q *Queries) GetRoomsAndMembers(ctx context.Context) ([]GetRoomsAndMembersRow, error) {
@@ -208,8 +199,6 @@ func (q *Queries) GetRoomsAndMembers(ctx context.Context) ([]GetRoomsAndMembersR
 			&i.HostID,
 			&i.MaxLocations,
 			&i.MaxPlayers,
-			&i.Status,
-			&i.IsPrivate,
 			&i.CreatedAt,
 			&i.PlayerCount,
 		); err != nil {
