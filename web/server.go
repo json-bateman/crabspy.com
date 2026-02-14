@@ -37,6 +37,24 @@ func StaticPath(format string, args ...any) string {
 	return "/" + StaticSys.HashName(fmt.Sprintf("static/"+format, args...))
 }
 
+type contextKey string
+
+const userIDKey contextKey = "userID"
+
+func requireAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, _ := Session.Get(r, "crabspy_session")
+		userID, ok := session.Values["userID"].(int64)
+		if !ok {
+			slog.Error("requireAuth failed.", "userID", userID)
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 	r := chi.NewRouter()
 
@@ -63,6 +81,7 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
 		r.Get("/", homePage(db))
+		r.Post("/avatar/{avatar}", changeAvatar(db))
 		r.Get("/host", hostPage(db))
 		r.Post("/host", host(db))
 		r.Post("/validate/host", validateHost(db))
@@ -84,9 +103,12 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 func valid(ctx context.Context, signals LoginSignals, db *sql.DB) (SignupRules, bool) {
 	var rules SignupRules
 
-	runes := []rune(signals.Password)
-	n := len(runes)
-	rules.Has8 = n >= 8
+	runesU := []rune(signals.Username)
+	runesP := []rune(signals.Password)
+	u := len(runesU)
+	p := len(runesP)
+	rules.Has8 = p >= 8
+	rules.LessThan12 = u < 12
 
 	q := sqlcgen.New(db)
 	_, err := q.GetUserByUsername(ctx, signals.Username)
@@ -216,30 +238,35 @@ func logout() http.HandlerFunc {
 	}
 }
 
-type contextKey string
-
-const userIDKey contextKey = "userID"
-
-func requireAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, _ := Session.Get(r, "crabspy_session")
-		userID, ok := session.Values["userID"].(int64)
-		if !ok {
-			slog.Error("requireAuth failed.", "userID", userID)
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 func homePage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
 		q := sqlcgen.New(db)
 		user, _ := q.GetUserById(r.Context(), userID)
 		Home(user).Render(r.Context(), w)
+	}
+}
+
+func changeAvatar(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(int64)
+		avatar := chi.URLParam(r, "avatar")
+
+		q := sqlcgen.New(db)
+
+		user, err := q.UpdateUserAvatar(r.Context(), sqlcgen.UpdateUserAvatarParams{
+			ID:         userID,
+			CrabAvatar: avatar,
+		})
+
+		if err != nil {
+			http.Error(w, "failed", 500)
+			slog.Error("Error updating player avatar", "Error", err)
+			return
+		}
+
+		sse := datastar.NewSSE(w, r)
+		sse.PatchElementTempl(Home(user))
 	}
 }
 

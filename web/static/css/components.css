@@ -224,6 +224,13 @@
   border-radius: var(--radius-3);
   box-shadow: 4px 4px 0px hsl(var(--secondary));
   inline-size: var(--size-fluid-10);
+
+  position: fixed;
+  inset-block-start: var(--size-3);
+  /* center horizontally */
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  margin: 0;
 }
 
 .dialog::backdrop {
@@ -250,4 +257,35 @@
   justify-content: flex-end;
   gap: var(--size-2);
   margin-top: var(--size-3);
+}
+
+.player-card {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  inline-size: 150px;
+
+  padding: var(--size-2);
+
+  border: var(--border-size-2) solid hsl(var(--primary));
+  border-radius: var(--radius-2);
+
+  box-shadow: var(--shadow-3);
+
+  background: hsl(var(--background));
+  color: hsl(var(--text));
+}
+
+.player-name {
+  inline-size: 100%;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-3);
+
+  text-align: center;
 }

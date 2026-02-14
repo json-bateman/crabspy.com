@@ -302,6 +302,10 @@
   margin-top: var(--size-4);
 }
 
+.p-1 {
+  padding: var(--size-1);
+}
+
 .p-2 {
   padding: var(--size-2);
 }
@@ -312,6 +316,43 @@
 
 .p-4 {
   padding: var(--size-4);
+}
+
+.px-1 {
+  padding-left: var(--size-1);
+  padding-right: var(--size-1);
+}
+
+.px-2 {
+  padding-left: var(--size-2);
+  padding-right: var(--size-2);
+}
+
+.px-3 {
+  padding-left: var(--size-3);
+  padding-right: var(--size-3);
+}
+
+.px-4 {
+  padding-left: var(--size-4);
+  padding-right: var(--size-4);
+}
+
+/* Position */
+.top-0 {
+  top: 0
+}
+
+.bottom-0 {
+  bottom: 0
+}
+
+.left-0 {
+  left: 0
+}
+
+.right-0 {
+  right: 0
 }
 
 /* Flexbox utilities */
@@ -326,6 +367,10 @@
 
 .justify-center {
   justify-content: center;
+}
+
+.justify-items-center {
+  justify-items: center;
 }
 
 .justify-between {
@@ -354,11 +399,11 @@
 }
 
 .shadow {
-  box-shadow: 3px 3px 3px hsl(var(--secondary));
+  box-shadow: 4px 4px 4px #000;
 }
 
 .shadow-success {
-  box-shadow: 3px 3px 3px hsl(var(--green-8));
+  box-shadow: 3px 3px 12px hsl(var(--green-8));
 }
 
 

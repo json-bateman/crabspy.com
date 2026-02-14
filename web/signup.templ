@@ -4,14 +4,15 @@ type SignupRules struct {
 	Has8          bool
 	UsernameTaken bool
 	Created       bool
+	LessThan12    bool
 }
 
 templ Signup(signupRules SignupRules) {
 	@Base("Signup") {
 		<main id="morphTarget">
 			<div class="flex-col w-full items-center">
-				<div style="inline-size: 120px; block-size: 120px;">
-					<img class="w-full contain" src={ StaticPath("images/crabspy-logo.png") }/>
+				<div style="inline-size: 80px; block-size: 80px;">
+					<img class="w-full contain" src={ StaticPath("images/player-crabs/spy-crab.png") }/>
 				</div>
 				<h3>Welcome to Crabspy</h3>
 				<span>Already have an account?&nbsp;<a class="hover-primary" href="/login">Login</a></span>
@@ -27,8 +28,13 @@ templ Signup(signupRules SignupRules) {
 						aria-live="polite"
 						aria-describedby="username"
 					/>
+					if !signupRules.LessThan12 {
+						<span class="validation">Less than 12 characters</span>
+					} else {
+						<span class="validation-success">✓ Less than 12 characters</span>
+					}
 					if signupRules.UsernameTaken {
-						<span class="validation">Username Taken!</span>
+						<span class="color-error">Username Taken!</span>
 					}
 				</div>
 				<div class="flex-col mb-2">
@@ -51,14 +57,11 @@ templ Signup(signupRules SignupRules) {
 					}
 				</div>
 				<div>
-					if signupRules.Has8 && !signupRules.UsernameTaken {
+					if signupRules.Has8 && !signupRules.UsernameTaken && signupRules.LessThan12 {
 						<button class="btn" data-on:click="@post('/signup')">Signup</button>
 					}
 				</div>
 				@Error("")
-				if signupRules.Created {
-					<a class="btn" href="/login">Login Here</a>
-				}
 			</div>
 		</main>
 	}

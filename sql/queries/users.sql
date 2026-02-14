@@ -15,3 +15,6 @@ LIMIT 1;
 INSERT INTO users (username, password_hash, display_name)
 VALUES (?, ?, ?)
 RETURNING *;
+
+-- name: UpdateUserAvatar :one
+UPDATE users SET crab_avatar = ? WHERE id = ? RETURNING *;

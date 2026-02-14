@@ -17,7 +17,7 @@ templ RoomPage(room sqlcgen.Room, game *sqlcgen.Game, members []sqlcgen.GetRoomM
 
 templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div class="flex-col max-w-content-3 w-full gap-4 mt-4">
-		<div class="bg border-2 p-4 shadow-hard">
+		<div class="bg border-2 rounded-2 p-4 shadow">
 			<div class="flex flex-wrap justify-between uppercase mb-3">
 				<span class="text-2xl w-full font-bold color-accent">{ room.Name }</span>
 				<div class="flex-col justify-center gap-2">
@@ -64,12 +64,12 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 				</div>
 			</div>
 			<div class="grid grid-cols-2">
-				<div class="p-3 border-2 bg-primary rounded-2 text-center">
-					<div class="text-sm uppercase font-bold mb-2">Locations</div>
+				<div class="p-2 border-2 shadow bg-secondary rounded-2 text-center">
+					<div class="text-sm uppercase font-bold">Locations</div>
 					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
 				</div>
-				<div class="p-3 border-2 bg-primary rounded-2 text-center">
-					<div class="text-sm uppercase font-bold mb-2">Max Players</div>
+				<div class="p-2 border-2 shadow bg-accent rounded-2 text-center">
+					<div class="text-sm uppercase font-bold">Max Players</div>
 					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
 				</div>
 			</div>
@@ -78,16 +78,16 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 			<div class="text-lg uppercase font-bold mb-3">
 				Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
 			</div>
-			<div class="flex flex-wrap gap-2">
+			<div class="flex justify-center flex-wrap gap-4">
 				for _, m := range members {
 					<div
-						class="relative flex items-center p-2 border-2 rounded-2"
+						class="player-card"
 						style={ getUserColor(m.Username, "border-color") }
 					>
-						<span style={ getUserColor(m.Username, "color") } class="font-bold text-xl">
+						<img class="mt-2" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", m.CrabAvatar)) }/>
+						<span style={ getUserColor(m.Username, "color") } class="player-name">
 							{ m.DisplayName }
 						</span>
-						<img class="w-full contain" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", m.CrabAvatar)) }/>
 						if m.ID == room.HostID {
 							<span class="host-float">HOST</span>
 						}

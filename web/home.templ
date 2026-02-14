@@ -1,23 +1,19 @@
 package web 
 
-import "crabspy/sql/sqlcgen"
+import (
+	"crabspy/sql/sqlcgen"
+	"fmt"
+)
 
 templ Home(user sqlcgen.User) {
 	@Base("Crabspy") {
-		@Header(user)
 		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text mb-4">
 			<span class="font-bold text-shadow-hard">Crabspy</span>
 		</div>
 		<div class="flex justify-center gap-4 mb-4">
 			<a href="host" class="btn btn-accent">Host Room</a>
 		</div>
-		<div class="flex justify-center mt-4">
-			<div class="splash-container">
-				<img class="w-full contain" src={ StaticPath("images/crab-splash.png") }/>
-			</div>
-		</div>
 		<div class="flex-col items-center gap-2">
-			<h5 class="mb-1">Enter Room Code</h5>
 			<input
 				data-on:keydown={ `
                 if (evt.key !== 'Enter' || !$code.trim().length) { 
@@ -37,6 +33,35 @@ templ Home(user sqlcgen.User) {
 				data-on:click="if ($code.trim().length) @post('/private')"
 			>Join Room</button>
 			@Error("")
+			<div class="relative">
+				<span
+					id="userDropdown"
+					data-signals="$showDropdown"
+					data-on:click="$showDropdown=!$showDropdown"
+					class="cursor-pointer"
+				>
+					<img class="w-full contain" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", user.CrabAvatar)) }/>
+				</span>
+				<div class="flex-col absolute mt-1 cursor-pointer">
+					<div
+						id="logout"
+						data-show="$showDropdown"
+						data-on:click="document.getElementById('userDialog').showModal()"
+						class="text-lg color-primary"
+					>
+						Crabatar	
+					</div>
+					<div
+						id="logout"
+						data-show="$showDropdown"
+						data-on:click="@post('/logout')"
+						class="text-lg color-primary"
+					>
+						Logout
+					</div>
+				</div>
+			</div>
+			@Dialog("userDialog", "Choose Crabatar", UserDialogBody("userDialog"))
 		</div>
 	}
 }

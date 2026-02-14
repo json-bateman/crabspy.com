@@ -1,51 +1,12 @@
 package web
 
-import "crabspy/sql/sqlcgen"
-import "fmt"
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
-templ Header(user sqlcgen.User) {
-	<header>
-		<div class="relative">
-			<span
-				id="userDropdown"
-				data-signals="$showDropdown"
-				data-on:click="$showDropdown=!$showDropdown"
-				class="cursor-pointer"
-			>
-				<img class="w-full contain" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", user.CrabAvatar)) }/>
-			</span>
-			<div class="flex-col absolute mt-1 cursor-pointer">
-				<div
-					id="logout"
-					data-show="$showDropdown"
-					data-on:click="document.getElementById('userDialog').showModal()"
-					class="text-lg color-primary"
-				>
-					Avatar	
-				</div>
-				<div
-					id="logout"
-					data-show="$showDropdown"
-					data-on:click="@post('/logout')"
-					class="text-lg color-primary"
-				>
-					Logout
-				</div>
-			</div>
-		</div>
-		@Dialog("userDialog", "Crab Avatar", UserDialogBody())
-	</header>
-}
-
-templ UserDialogBody() {
-	<div class="grid grid-cols-4 cursor-pointer">
-		for _, crab := range PlayerCrabAvatars {
-			if !strings.Contains(strings.ToLower(crab), "spy") {
-				<img src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", crab)) }/>
-			}
-		}
-	</div>
+templ Header() {
+	<header></header>
 }
 
 templ Error(msg string) {
@@ -53,18 +14,33 @@ templ Error(msg string) {
 }
 
 templ Dialog(id string, title string, body templ.Component) {
-	<dialog id={ id } class="dialog">
-		<div class="dialog-header">
+	<dialog id={ id } class="dialog relative">
+		<div class="dialog-header justify-center">
 			<div class="dialog-title">{ title }</div>
-			<button
+			<span
 				type="button"
-				class="btn btn-secondary"
-				style="max-inline-size: var(--size-10); min-inline-size: var(--size-10); block-size: var(--size-6);"
+				class="px-2 cursor-pointer font-bold text-lg absolute top-0 right-0"
 				data-on:click={ fmt.Sprintf("document.getElementById('%s').close()", id) }
 			>
-				Close
-			</button>
+				X	
+			</span>
 		</div>
 		@body
 	</dialog>
+}
+
+templ UserDialogBody(id string) {
+	<div class="grid grid-cols-4 justify-items-center cursor-pointer">
+		for _, pngStr := range PlayerCrabAvatars {
+			if !strings.Contains(strings.ToLower(pngStr), "spy") {
+				<img
+					data-on:click={ fmt.Sprintf(
+                    `@post('avatar/%s');
+                    document.getElementById('%s').close();
+                    `, pngStr, id) }
+					src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", pngStr)) }
+				/>
+			}
+		}
+	</div>
 }
