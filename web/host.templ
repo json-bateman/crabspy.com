@@ -49,6 +49,15 @@ templ Host(rules HostRules, user sqlcgen.User) {
 							<option selected value="8">8</option>
 						</select>
 					</div>
+					<div class="flex-col mb-2">
+						<label>Timer Duration</label>
+						<select class="select" data-bind:timer-duration>
+							<option value="360">6 minutes</option>
+							<option selected value="480">8 minutes</option>
+							<option value="600">10 minutes</option>
+							<option value="720">12 minutes</option>
+						</select>
+					</div>
 					if !rules.NameEmpty && !rules.NameTooLong {
 						<button class="btn" data-on:click="@post('/host')">Host Room</button>
 					}

@@ -5,22 +5,24 @@
 package sqlcgen
 
 type Game struct {
-	RoomID    int64  `json:"room_id"`
-	SpyID     int64  `json:"spy_id"`
-	Location  string `json:"location"`
-	Paused    int64  `json:"paused"`
-	StartedAt int64  `json:"started_at"`
+	RoomID         int64  `json:"room_id"`
+	SpyID          int64  `json:"spy_id"`
+	Location       string `json:"location"`
+	Paused         int64  `json:"paused"`
+	StartedAt      int64  `json:"started_at"`
+	TimerRemaining int64  `json:"timer_remaining"`
 }
 
 type Room struct {
-	ID           int64  `json:"id"`
-	Name         string `json:"name"`
-	Code         string `json:"code"`
-	HostID       int64  `json:"host_id"`
-	MaxLocations int64  `json:"max_locations"`
-	MaxPlayers   int64  `json:"max_players"`
-	CreatedAt    int64  `json:"created_at"`
-	State        string `json:"state"`
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Code          string `json:"code"`
+	HostID        int64  `json:"host_id"`
+	MaxLocations  int64  `json:"max_locations"`
+	MaxPlayers    int64  `json:"max_players"`
+	CreatedAt     int64  `json:"created_at"`
+	State         string `json:"state"`
+	TimerDuration int64  `json:"timer_duration"`
 }
 
 type RoomMember struct {

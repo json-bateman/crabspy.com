@@ -1,12 +1,5 @@
 package web
 
-type SignupRules struct {
-	Has8          bool
-	UsernameTaken bool
-	Created       bool
-	LessThan12    bool
-}
-
 templ Signup(signupRules SignupRules) {
 	@Base("Signup") {
 		<main id="morphTarget">

@@ -23,7 +23,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 				<div class="flex-col justify-center gap-2">
 					<div class="flex items-center">
 						<span class="color-text">Room Code:&ensp;</span>
-						<span class="font-bold color-primary">{ room.Code }</span>
+						<span class="font-bold color-secondary">{ room.Code }</span>
 					</div>
 					<div class="cursor-pointer" onclick="copyRoomUrl(this)">
 						<div class="flex">
@@ -98,7 +98,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 
 templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div
-		data-signals={ fmt.Sprintf("{timer: 0, paused: %d}", game.Paused) }
+		data-signals={ fmt.Sprintf("{timer: %d, paused: %d}", game.TimerRemaining, game.Paused) }
 		data-init={ `
 			// ensure only one interval per mounted element
 			if (el._timerInterval) clearInterval(el._timerInterval);
@@ -117,14 +117,14 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 			}, 1000);
 		` }
 	>
-		<div class="flex gap-4 items-center mb-4">
+		<div class="flex gap-4 justify-center items-center mb-4">
 			<div class="text-2xl font-bold color-primary">
 				<span data-text="toMMSS($timer)"></span>
 			</div>
 			if game.Paused == 0 {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
-					class="text-3xl border-2 rounded-2 w-full"
+					class="text-3xl border-2 rounded-2"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
 						<path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"></path>
@@ -133,7 +133,7 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 			} else {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
-					class="text-3xl border-2 rounded-2 w-full"
+					class="text-3xl border-2 rounded-2"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
 						<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"></path>

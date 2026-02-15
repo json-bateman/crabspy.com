@@ -319,7 +319,8 @@ func host(db *sql.DB) http.HandlerFunc {
 
 		maxLocations, err1 := strconv.ParseInt(signals.Locations, 10, 64)
 		maxPlayers, err2 := strconv.ParseInt(signals.MaxPlayers, 10, 64)
-		if err1 != nil || err2 != nil {
+		timerDuration, err3 := strconv.ParseInt(signals.TimerDuration, 10, 64)
+		if err1 != nil || err2 != nil || err3 != nil {
 			slog.Error("Error converting string to int in host form.", "Error", err)
 			sse.PatchElementTempl(Error("Invalid Input"))
 			return
@@ -327,11 +328,12 @@ func host(db *sql.DB) http.HandlerFunc {
 
 		code := internal.GenerateRoomCode(4)
 		room, err := q.CreateRoom(r.Context(), sqlcgen.CreateRoomParams{
-			HostID:       user.ID,
-			Name:         signals.Name,
-			MaxPlayers:   maxPlayers,
-			MaxLocations: maxLocations,
-			Code:         code,
+			HostID:        user.ID,
+			Name:          signals.Name,
+			MaxPlayers:    maxPlayers,
+			MaxLocations:  maxLocations,
+			Code:          code,
+			TimerDuration: timerDuration,
 		})
 
 		if err != nil {
@@ -354,7 +356,8 @@ func privateRoom(db *sql.DB) http.HandlerFunc {
 			Code string `json:"code"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
-			http.Redirect(w, r, "/join", http.StatusFound)
+			slog.Error("Error Decoding signals", "err", err)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
@@ -378,7 +381,8 @@ func roomPage(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		q := sqlcgen.New(db)
 		room, err := q.GetRoomByCode(r.Context(), roomCode)
 		if err != nil {
-			http.Redirect(w, r, "/join", http.StatusFound)
+			slog.Error("Error GetRoomByCode()", "err", err)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
@@ -400,7 +404,7 @@ func roomPage(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		members, _ := q.GetRoomMembers(r.Context(), room.ID)
 		RoomPage(room, gamePtr, members, userID).Render(r.Context(), w)
 
-		bus.NotifyRoom(room.Code)
+		bus.NotifyRoom(room.ID)
 	}
 }
 
@@ -415,8 +419,8 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 		sse := datastar.NewSSE(w, r)
-		ch := bus.SubscribeRoom(room.Code)
-		defer bus.UnsubscribeRoom(room.Code, ch)
+		ch := bus.SubscribeRoom(room.ID)
+		defer bus.UnsubscribeRoom(room.ID, ch)
 
 		if err := q.JoinRoom(r.Context(), sqlcgen.JoinRoomParams{
 			RoomID: room.ID,
@@ -424,7 +428,7 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		}); err != nil {
 			slog.Error("Error adding user to room", "err", err, "roomID", room.ID, "userID", userID)
 		}
-		bus.NotifyRoom(room.Code)
+		bus.NotifyRoom(room.ID)
 		slog.Debug("User joined room", "roomID", room.ID, "userID", userID)
 
 		for {
@@ -438,7 +442,7 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 					if err == nil {
 						gamePtr = &g
 					}
-					signals, _ := json.Marshal(map[string]int{"timer": 200})
+					signals, _ := json.Marshal(map[string]int64{"timer": g.TimerRemaining})
 					sse.PatchSignals(signals)
 				}
 				sse.PatchElementTempl(RoomPage(room, gamePtr, members, userID))
@@ -464,10 +468,12 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 						} else {
 							slog.Debug("Host transferred", "roomID", room.ID, "newHostID", newHost.ID)
 						}
+					} else {
+						// Maybe DELETE room if everyone's gone? Not sure what I wanna do about this yet
 					}
 				}
 
-				bus.NotifyRoom(room.Code)
+				bus.NotifyRoom(room.ID)
 				slog.Debug("User left room", "roomID", room.ID, "userID", userID)
 				return
 			}
@@ -494,9 +500,10 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		location := crabspy.Locations[rand.Intn(len(crabspy.Locations))]
 
 		if err := q.UpsertGameForRoom(r.Context(), sqlcgen.UpsertGameForRoomParams{
-			RoomID:   room.ID,
-			SpyID:    spyID,
-			Location: location.Title,
+			RoomID:         room.ID,
+			SpyID:          spyID,
+			Location:       location.Title,
+			TimerRemaining: room.TimerDuration,
 		}); err != nil {
 			slog.Error("Error UpsertGameForRoom()", "err", err)
 		}
@@ -507,11 +514,16 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error UpdateRoomState()", "err", err)
 		}
 
-		bus.NotifyRoom(room.Code)
+		bus.NotifyRoom(room.ID)
 	}
 }
 func pauseGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var signals GameSignals
+		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
+			slog.Error("Error decoding signals", "Error", err)
+			return
+		}
 		roomCode := chi.URLParam(r, "code")
 		q := sqlcgen.New(db)
 		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
@@ -519,11 +531,18 @@ func pauseGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error GetRoomByCode()", "Error", err)
 			return
 		}
+		if err := q.UpdateGameTimer(r.Context(), sqlcgen.UpdateGameTimerParams{
+			RoomID:         room.ID,
+			TimerRemaining: int64(signals.Timer),
+		}); err != nil {
+			slog.Error("Error GetGameByRoomID()", "Error", err)
+			return
+		}
 		if err := q.TogglePauseGame(r.Context(), room.ID); err != nil {
 			slog.Error("Error TogglePauseGame()", "err", err)
 		}
 
-		bus.NotifyRoom(room.Code)
+		bus.NotifyRoom(room.ID)
 	}
 }
 
