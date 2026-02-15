@@ -3,9 +3,9 @@
 :root {
   --text: 40 30% 90%;
   --background: 210 35% 12%;
-  --primary: 200 55% 55%;
+  --primary: 5 70% 50%;
   --secondary: 38 50% 55%;
-  --accent: 5 70% 50%;
+  --accent: 200 55% 55%;
   --success: 160 50% 55%;
   --error: 0 65% 55%;
 }
@@ -13,9 +13,9 @@
 :root[data-theme="light"] {
   --text: 210 30% 15%;
   --background: 40 40% 92%;
-  --primary: 200 60% 40%;
+  --primary: 5 70% 48%;
   --secondary: 38 45% 45%;
-  --accent: 5 70% 48%;
+  --accent: 200 60% 40%;
   --success: 160 55% 38%;
   --error: 0 65% 48%;
 }
@@ -23,9 +23,9 @@
 :root[data-theme="dark"] {
   --text: 40 30% 90%;
   --background: 210 35% 12%;
-  --primary: 200 55% 55%;
+  --primary: 5 70% 50%;
   --secondary: 38 50% 55%;
-  --accent: 5 70% 50%;
+  --accent: 200 55% 55%;
   --success: 160 50% 55%;
   --error: 0 65% 55%;
 }

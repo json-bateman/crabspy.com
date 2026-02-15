@@ -365,6 +365,11 @@
   flex-direction: column;
 }
 
+.flex-1 {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+
 .justify-center {
   justify-content: center;
 }

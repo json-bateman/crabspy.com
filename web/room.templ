@@ -16,14 +16,14 @@ templ RoomPage(room sqlcgen.Room, game *sqlcgen.Game, members []sqlcgen.GetRoomM
 }
 
 templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
-	<div class="flex-col max-w-content-3 w-full gap-4 mt-4">
+	<div class="flex-col px-2 max-w-content-3 w-full mt-4">
 		<div class="bg border-2 rounded-2 p-4 shadow">
 			<div class="flex flex-wrap justify-between uppercase mb-3">
-				<span class="text-2xl w-full font-bold color-accent">{ room.Name }</span>
+				<span class="text-2xl w-full font-bold color-primary">{ room.Name }</span>
 				<div class="flex-col justify-center gap-2">
 					<div class="flex items-center">
 						<span class="color-text">Room Code:&ensp;</span>
-						<span class="font-bold color-accent">{ room.Code }</span>
+						<span class="font-bold color-primary">{ room.Code }</span>
 					</div>
 					<div class="cursor-pointer" onclick="copyRoomUrl(this)">
 						<div class="flex">
@@ -68,70 +68,34 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 					<div class="text-sm uppercase font-bold">Locations</div>
 					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
 				</div>
-				<div class="p-2 border-2 shadow bg-accent rounded-2 text-center">
+				<div class="p-2 border-2 shadow bg-primary rounded-2 text-center">
 					<div class="text-sm uppercase font-bold">Max Players</div>
 					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
 				</div>
 			</div>
 		</div>
-		<div id="room-members" class="p-4">
+		if playerID == room.HostID {
+			<div class="flex w-full justify-center mt-3">
+				<button data-on:click={ fmt.Sprintf("@post('/room/%s/start')", room.Code) } class="btn btn-primary">Start Game</button>
+			</div>
+		}
+		<div id="room-members" class="p-2">
 			<div class="text-lg uppercase font-bold mb-3">
 				Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
 			</div>
 			<div class="flex justify-center flex-wrap gap-4">
 				for _, m := range members {
-					<div
-						class="player-card"
-						style={ getUserColor(m.Username, "border-color") }
-					>
-						<img class="mt-2" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", m.CrabAvatar)) }/>
-						<span style={ getUserColor(m.Username, "color") } class="player-name">
-							{ m.DisplayName }
-						</span>
-						if m.ID == room.HostID {
-							<span class="host-float">HOST</span>
-						}
-					</div>
+					@PlayerCard(Player{
+						Username:    m.Username,
+						DisplayName: m.DisplayName,
+						CrabAvatar:  m.CrabAvatar,
+					}, m.ID == room.HostID)
 				}
 			</div>
 		</div>
 	</div>
-	if playerID == room.HostID {
-		<button data-on:click={ fmt.Sprintf("@post('/room/%s/start')", room.Code) } class="btn btn-accent mt-3">Start Game</button>
-	}
 }
 
 templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div>Game</div>
-}
-
-// getUserColor returns a deterministic color assignment based on username.
-func getUserColor(username string, css string) templ.SafeCSS {
-	colors := []string{
-		"#ef4444;", // red
-		"#f97316;", // orange
-		"#eab308;", // yellow
-		"#22c55e;", // green
-		"#3b82f6;", // blue
-		"#8b5cf6;", // violet
-		"#ec4899;", // pink
-		"#06b6d4;", // cyan
-		"#f59e0b;", // amber
-		"#10b981;", // emerald
-		"#6366f1;", // indigo
-		"#84cc16;", // lime
-	}
-
-	hash := 0
-	for _, char := range username {
-		hash = hash*31 + int(char)
-	}
-
-	index := hash % len(colors)
-	if index < 0 {
-		index = -index
-	}
-	cssVal := fmt.Sprintf("%s: %s", css, colors[index])
-
-	return templ.SafeCSS(cssVal)
 }

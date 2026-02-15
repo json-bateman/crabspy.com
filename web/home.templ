@@ -3,65 +3,132 @@ package web
 import (
 	"crabspy/sql/sqlcgen"
 	"fmt"
+	"strings"
 )
 
 templ Home(user sqlcgen.User) {
 	@Base("Crabspy") {
-		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text mb-4">
+		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text">
 			<span class="font-bold text-shadow-hard">Crabspy</span>
 		</div>
-		<div class="flex justify-center gap-4 mb-4">
-			<a href="host" class="btn btn-accent">Host Room</a>
+		<div class="w-full flex justify-center">
+			<span
+				id="userDropdown"
+				data-on:click="document.getElementById('userDialog').showModal()"
+				class="cursor-pointer"
+			>
+				@PlayerCard(Player{
+					Username:    user.Username,
+					DisplayName: user.DisplayName,
+					CrabAvatar:  user.CrabAvatar,
+				}, false)
+			</span>
 		</div>
-		<div class="flex-col items-center gap-2">
-			<input
-				data-on:keydown={ `
-                if (evt.key !== 'Enter' || !$code.trim().length) { 
-                    return; 
-                };
-                @post('/private');
-            ` }
-				class="input"
-				data-bind:code
-				type="text"
-				name="code"
-				placeholder="Room code..."
-				autocomplete="off"
-			/>
-			<button
-				class="btn btn-accent"
-				data-on:click="if ($code.trim().length) @post('/private')"
-			>Join Room</button>
-			@Error("")
-			<div class="relative mt-4">
-				<span
-					id="userDropdown"
-					data-signals="$showDropdown"
-					data-on:click="$showDropdown=!$showDropdown"
-					class="cursor-pointer"
-				>
-					<img class="w-full contain" src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", user.CrabAvatar)) }/>
-				</span>
-				<div class="flex-col absolute mt-1 cursor-pointer">
-					<div
-						id="logout"
-						data-show="$showDropdown"
-						data-on:click="document.getElementById('userDialog').showModal()"
-						class="text-lg color-primary"
-					>
-						Crabatar	
+		<div class="flex w-full justify-center mt-4">
+			<div
+				style="max-inline-size: var(--size-14);"
+				class="flex-col gap-4 w-full items-center"
+			>
+				<a href="host" class="btn btn-primary shadow">Host Room</a>
+				<div class="flex-col">
+					<div class="flex gap-2">
+						<input
+							data-on:keydown={ `
+                            if (evt.key !== 'Enter' || !$code.trim().length) { 
+                                return; 
+                            };
+                            @post('/private');
+                        ` }
+							class="input shadow flex-1"
+							data-bind:code
+							type="text"
+							name="code"
+							placeholder="Room code..."
+							autocomplete="off"
+						/>
+						<button
+							class="btn btn-primary shadow flex-1"
+							data-on:click="if ($code.trim().length) @post('/private')"
+						>Join Room</button>
 					</div>
-					<div
-						id="logout"
-						data-show="$showDropdown"
-						data-on:click="@post('/logout')"
-						class="text-lg color-primary"
-					>
-						Logout
+					<div class="flex justify-center">
+						@Error("")
 					</div>
 				</div>
+				<button
+					id="crabspy-rules"
+					data-on:click="document.getElementById('rulesDialog').showModal()"
+					class="btn btn-secondary shadow"
+				>
+					Rules	
+				</button>
 			</div>
-			@Dialog("userDialog", "Choose Crabatar", UserDialogBody("userDialog"))
 		</div>
+		@Dialog("userDialog", "Choose Crabatar", UserDialogBody("userDialog"))
+		@Dialog("rulesDialog", "Crabspy Rules", SpyfallRulesDialogBody())
 	}
+}
+
+templ UserDialogBody(id string) {
+	<div class="grid grid-cols-4 justify-items-center cursor-pointer">
+		for _, pngStr := range PlayerCrabAvatars {
+			if !strings.Contains(strings.ToLower(pngStr), "spy") {
+				<img
+					data-on:click={ fmt.Sprintf(
+                    `@post('avatar/%s');
+                    document.getElementById('%s').close();
+                    `, pngStr, id) }
+					src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", pngStr)) }
+				/>
+			}
+		}
+	</div>
+	<div class="mt-4 w-full flex justify-center">
+		<button
+			style="inline-size: var(--size-px-8);"
+			class="btn btn-primary"
+			data-on:click="@post('/logout')"
+		>Logout</button>
+	</div>
+}
+
+templ SpyfallRulesDialogBody() {
+	<div class="flex flex-col gap-2 text-left">
+		<div class="flex w-full justify-center">
+			<img
+				style="width: 64px; height: auto;"
+				src={ StaticPath("images/player-crabs/spy-crab.png") }
+			/>
+		</div>
+		<div class="text-lg font-bold">Overview</div>
+		<div class="text-sm">
+			Each round everyone shares the same <span class="font-bold">location</span> except the
+			<span class="font-bold">Crabspy</span>, who only knows they are the Crabspy. The Crabspy tries to figure out the location or survive to the end. Everyone else tries to identify them without revealing the location.
+		</div>
+		<div class="text-lg font-bold mt-3">Setup</div>
+		<div class="text-sm">
+			Each player receives a secret card. Most players see the location and their role. One player receives the Spy card and does not know the location.
+		</div>
+		<div class="text-lg font-bold mt-3">Question Phase</div>
+		<div class="text-sm">
+			The starting player asks another player a question about the location. The answerer then asks a different player. Players cannot ask the person who just asked them. Questions should help identify the Spy without giving away the location.
+		</div>
+		<div class="text-lg font-bold mt-3">Ending the Round</div>
+		<div class="text-sm font-bold">Accuse the Spy</div>
+		<div class="text-sm">
+			A player may stop the round and accuse someone. All other players vote. If everyone agrees, the accused reveals their card.
+		</div>
+		<div class="text-sm font-bold mt-2">Spy Guesses Location</div>
+		<div class="text-sm">
+			The Spy may stop the round at any time and guess the location. If correct, the Spy wins immediately. If wrong, the other players win.
+		</div>
+		<div class="text-sm font-bold mt-2">Time Runs Out</div>
+		<div class="text-sm">
+			If time expires and the Spy is not caught, the Spy wins.
+		</div>
+		<div class="text-lg font-bold mt-3">Scoring</div>
+		<div class="text-sm">
+			Spy scores 4 points by surviving or guessing correctly. Non-Spies score 2 points by correctly identifying the Spy.
+		</div>
+	</div>
 }

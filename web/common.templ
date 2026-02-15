@@ -1,9 +1,6 @@
 package web
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 templ Header() {
 	<header></header>
@@ -29,18 +26,59 @@ templ Dialog(id string, title string, body templ.Component) {
 	</dialog>
 }
 
-templ UserDialogBody(id string) {
-	<div class="grid grid-cols-4 justify-items-center cursor-pointer">
-		for _, pngStr := range PlayerCrabAvatars {
-			if !strings.Contains(strings.ToLower(pngStr), "spy") {
-				<img
-					data-on:click={ fmt.Sprintf(
-                    `@post('avatar/%s');
-                    document.getElementById('%s').close();
-                    `, pngStr, id) }
-					src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", pngStr)) }
-				/>
-			}
+type Player struct {
+	Username    string
+	DisplayName string
+	CrabAvatar  string
+}
+
+templ PlayerCard(p Player, isHost bool) {
+	<div
+		class="player-card shadow"
+		style={ getUserColor(p.Username, "border-color") }
+	>
+		<img
+			src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", p.CrabAvatar)) }
+		/>
+		<span
+			style={ getUserColor(p.Username, "color") }
+			class="player-name"
+		>
+			{ p.DisplayName }
+		</span>
+		if isHost {
+			<span class="host-float">HOST</span>
 		}
 	</div>
+}
+
+// getUserColor returns a deterministic color assignment based on username.
+func getUserColor(username string, css string) templ.SafeCSS {
+	colors := []string{
+		"#ef4444;", // red
+		"#f97316;", // orange
+		"#eab308;", // yellow
+		"#22c55e;", // green
+		"#3b82f6;", // blue
+		"#8b5cf6;", // violet
+		"#ec4899;", // pink
+		"#06b6d4;", // cyan
+		"#f59e0b;", // amber
+		"#10b981;", // emerald
+		"#6366f1;", // indigo
+		"#84cc16;", // lime
+	}
+
+	hash := 0
+	for _, char := range username {
+		hash = hash*31 + int(char)
+	}
+
+	index := hash % len(colors)
+	if index < 0 {
+		index = -index
+	}
+	cssVal := fmt.Sprintf("%s: %s", css, colors[index])
+
+	return templ.SafeCSS(cssVal)
 }

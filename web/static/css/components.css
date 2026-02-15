@@ -8,7 +8,7 @@
 }
 
 #join-table {
-  border: var(--border-size-2) solid hsl(var(--accent));
+  border: var(--border-size-2) solid hsl(var(--primary));
 }
 
 #error {
@@ -33,16 +33,23 @@
   cursor: pointer;
   background-color: hsl(var(--primary) / 0.8);
   color: hsl(var(--text));
-  box-shadow: 2px 2px 0px hsl(var(--primary) / 0.8);
 
   &:hover {
     background-color: hsl(var(--primary) / 0.9);
   }
 
+  &.btn-primary {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.8);
+
+    &:hover {
+      background-color: hsl(var(--primary) / 0.9);
+    }
+  }
+
   &.btn-secondary {
     border-color: hsl(var(--secondary));
     background-color: hsl(var(--secondary) / 0.8);
-    box-shadow: 2px 2px 0px hsl(var(--secondary) / 0.8);
 
     &:hover {
       background-color: hsl(var(--secondary) / 0.9);
@@ -52,7 +59,6 @@
   &.btn-accent {
     border-color: hsl(var(--accent));
     background-color: hsl(var(--accent) / 0.8);
-    box-shadow: 3px 3px 0px hsl(var(--accent) / 0.8);
 
     &:hover {
       background-color: hsl(var(--accent) / 0.9);
@@ -62,17 +68,15 @@
   &.btn-success {
     border-color: var(--green-6);
     background-color: var(--green-4);
-    box-shadow: 3px 3px 0px var(--green-8);
 
     &:hover {
-      background-color: hsl(from var(--green-4) h s l / 0.75);
+      background-color: hsl(var(--green-4) / 0.75);
     }
   }
 
   &.btn-disabled {
     border-color: var(--gray-6);
     background-color: var(--gray-4);
-    box-shadow: 3px 3px 0px var(--gray-8);
     cursor: not-allowed;
   }
 }
@@ -82,10 +86,46 @@
   background-color: hsl(var(--primary) / 0.05);
   color: hsl(var(--text));
   border: var(--border-size-2) solid hsl(var(--primary));
-  inline-size: var(--size-13);
+  max-inline-size: var(--size-13);
   padding-left: var(--size-1);
   padding-block: var(--size-1);
   block-size: var(--size-7);
+
+  &:hover {
+    background-color: hsl(var(--primary) / 0.10);
+  }
+
+  &.input-secondary {
+    border-color: hsl(var(--secondary));
+    background-color: hsl(var(--secondary) / 0.05);
+
+    &:hover {
+      background-color: hsl(var(--secondary) / 0.10);
+    }
+  }
+
+  &.input-accent {
+    border-color: hsl(var(--accent));
+    background-color: hsl(var(--accent) / 0.05);
+
+    &:hover {
+      background-color: hsl(var(--accent) / 0.10);
+    }
+  }
+
+  &.input-success {
+    border-color: hsl(var(--green-6));
+    background-color: hsl(var(--green-4) / 0.05);
+
+    &:hover {
+      background-color: hsl(var(--green-4) / 0.10);
+    }
+  }
+
+  &.input-disabled {
+    border-color: var(--gray-6);
+    cursor: not-allowed;
+  }
 
   &.input-error {
     border-color: hsl(var(--error));
@@ -105,7 +145,6 @@
   border: var(--border-size-2) solid hsl(var(--primary));
   padding-left: var(--size-1);
   font-size: var(--font-size-3);
-  box-shadow: var(--shadow-3);
 }
 
 
@@ -114,7 +153,6 @@
   color: hsl(var(--text));
   border: var(--border-size-2) solid hsl(var(--primary));
   font-size: var(--font-size-0);
-  box-shadow: var(--shadow-3);
 }
 
 /* Grid */
@@ -135,7 +173,7 @@
   text-align: center;
   font-weight: var(--font-weight-7);
   font-size: var(--font-size-3);
-  border-bottom: var(--border-size-2) solid hsl(var(--accent));
+  border-bottom: var(--border-size-2) solid hsl(var(--primary));
 }
 
 /* Loader */
@@ -208,7 +246,7 @@
 .host-float {
   position: absolute;
   font-size: hsl(var(--font-size-1));
-  color: hsl(var(--accent));
+  color: hsl(var(--primary));
   top: -0.7em;
   left: 0;
   background-color: hsl(var(--background));
