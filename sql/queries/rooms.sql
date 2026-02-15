@@ -51,3 +51,8 @@ ON CONFLICT(room_id) DO UPDATE SET
     paused = excluded.paused,
     started_at = excluded.started_at;
 
+-- name: TogglePauseGame :exec
+UPDATE games 
+SET paused = 1 - paused 
+WHERE room_id = ?
+RETURNING *;

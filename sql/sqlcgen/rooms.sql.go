@@ -265,6 +265,18 @@ func (q *Queries) LeaveRoom(ctx context.Context, arg LeaveRoomParams) error {
 	return err
 }
 
+const togglePauseGame = `-- name: TogglePauseGame :exec
+UPDATE games 
+SET paused = 1 - paused 
+WHERE room_id = ?
+RETURNING room_id, spy_id, location, paused, started_at
+`
+
+func (q *Queries) TogglePauseGame(ctx context.Context, roomID int64) error {
+	_, err := q.db.ExecContext(ctx, togglePauseGame, roomID)
+	return err
+}
+
 const updateRoomHost = `-- name: UpdateRoomHost :exec
 UPDATE rooms SET host_id = ? WHERE id = ?
 `

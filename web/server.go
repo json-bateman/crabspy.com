@@ -88,6 +88,7 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Get("/room/{code}", roomPage(db, bus))
 		r.Post("/private", privateRoom(db))
 		r.Post("/room/{code}/start", startGame(db, bus))
+		r.Post("/room/{code}/pause", pauseGame(db, bus))
 
 		r.Get("/sse/room/{code}", roomSSE(db, bus))
 	})
@@ -437,6 +438,8 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 					if err == nil {
 						gamePtr = &g
 					}
+					signals, _ := json.Marshal(map[string]int{"timer": 200})
+					sse.PatchSignals(signals)
 				}
 				sse.PatchElementTempl(RoomPage(room, gamePtr, members, userID))
 			case <-r.Context().Done():
@@ -505,12 +508,26 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		}
 
 		bus.NotifyRoom(room.Code)
-		sse := datastar.NewSSE(w, r)
-		sse.PatchElementTempl(Error(""))
+	}
+}
+func pauseGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomCode := chi.URLParam(r, "code")
+		q := sqlcgen.New(db)
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+		if err := q.TogglePauseGame(r.Context(), room.ID); err != nil {
+			slog.Error("Error TogglePauseGame()", "err", err)
+		}
+
+		bus.NotifyRoom(room.Code)
 	}
 }
 
-// RunBlocking sets up routes, starts the server, handles cleanup
+// RunBlocking sets up routes and deps. Starts the server. Handles cleanup
 func RunBlocking(setupCtx context.Context, db *sql.DB) error {
 	Session = sessions.NewCookieStore([]byte(crabspy.Env.CookieStoreSecret))
 	bus := eventbus.NewBus()

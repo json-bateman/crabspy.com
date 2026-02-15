@@ -16,7 +16,8 @@ CREATE TABLE rooms (
     max_locations INTEGER NOT NULL DEFAULT 30,
     max_players INTEGER NOT NULL DEFAULT 8,
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-    state TEXT NOT NULL DEFAULT 'lobby' CHECK (state IN ('lobby', 'game'))
+    state TEXT NOT NULL DEFAULT 'lobby' CHECK (state IN ('lobby', 'game')),
+    timer_duration INTEGER NOT NULL DEFAULT 480
 );
 
 CREATE TABLE room_members (
@@ -34,6 +35,7 @@ CREATE TABLE games (
     location TEXT NOT NULL,
     paused INTEGER NOT NULL DEFAULT 0,
     started_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    timer_remaining INTEGER NOT NULL DEFAULT 480,
     PRIMARY KEY (room_id)
 );
 
