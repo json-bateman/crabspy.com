@@ -28,3 +28,9 @@ type SignupRules struct {
 	Created       bool
 	LessThan12    bool
 }
+
+type Player struct {
+	Username    string
+	DisplayName string
+	CrabAvatar  string
+}

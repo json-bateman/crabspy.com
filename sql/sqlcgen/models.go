@@ -4,13 +4,19 @@
 
 package sqlcgen
 
+import (
+	"database/sql"
+)
+
 type Game struct {
-	RoomID         int64  `json:"room_id"`
-	SpyID          int64  `json:"spy_id"`
-	Location       string `json:"location"`
-	Paused         int64  `json:"paused"`
-	StartedAt      int64  `json:"started_at"`
-	TimerRemaining int64  `json:"timer_remaining"`
+	RoomID         int64         `json:"room_id"`
+	SpyID          int64         `json:"spy_id"`
+	Location       string        `json:"location"`
+	StartedAt      int64         `json:"started_at"`
+	Paused         int64         `json:"paused"`
+	TimerRemaining int64         `json:"timer_remaining"`
+	PausedID       sql.NullInt64 `json:"paused_id"`
+	AccusedID      sql.NullInt64 `json:"accused_id"`
 }
 
 type Room struct {

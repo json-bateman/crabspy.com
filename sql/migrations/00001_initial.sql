@@ -30,13 +30,15 @@ CREATE TABLE room_members (
 );
 
 CREATE TABLE games (
-    room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-    spy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    room_id INTEGER PRIMARY KEY REFERENCES rooms(id) ON DELETE CASCADE,
+    spy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     location TEXT NOT NULL,
-    paused INTEGER NOT NULL DEFAULT 0,
     started_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    paused INTEGER NOT NULL DEFAULT 0,
     timer_remaining INTEGER NOT NULL DEFAULT 480,
-    PRIMARY KEY (room_id)
+
+    paused_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    accused_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_room_members_user ON room_members(user_id);

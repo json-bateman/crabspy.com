@@ -44,25 +44,3 @@ UPDATE rooms SET host_id = ? WHERE id = ?;
 
 -- name: UpdateRoomState :exec
 UPDATE rooms SET state = ? WHERE id = ?;
-
--- name: UpsertGameForRoom :exec
-INSERT INTO games (room_id, spy_id, location, paused, timer_remaining, started_at)
-VALUES (?, ?, ?, 0, ?, unixepoch())
-ON CONFLICT(room_id) DO UPDATE SET
-    spy_id = excluded.spy_id,
-    location = excluded.location,
-    paused = excluded.paused,
-    timer_remaining = excluded.timer_remaining,
-    started_at = excluded.started_at;
-
--- name: UpdateGameTimer :exec
-UPDATE games
-SET timer_remaining = ?
-WHERE room_id = ?;
-
--- name: TogglePauseGame :exec
-UPDATE games 
-SET paused = 1 - paused 
-WHERE room_id = ?
-RETURNING *;
-

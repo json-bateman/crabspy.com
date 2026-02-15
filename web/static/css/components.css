@@ -202,10 +202,30 @@
 
 .host-float {
   position: absolute;
-  font-size: hsl(var(--font-size-1));
-  color: hsl(var(--primary));
-  top: -0.7em;
+  font-size: var(--font-size-1);
+  color: hsl(var(--accent));
+  top: -0.8em;
   left: 0;
+  background-color: hsl(var(--background));
+  padding-inline: var(--size-1);
+}
+
+.pause-float {
+  position: absolute;
+  font-size: 0.8rem;
+  color: var(--green-9);
+  top: -0.8em;
+  right: 0;
+  background-color: hsl(var(--background));
+  padding-inline: var(--size-1);
+}
+
+.accused-float {
+  position: absolute;
+  font-size: 0.8rem;
+  color: var(--orange-9);
+  top: -0.8em;
+  right: 0;
   background-color: hsl(var(--background));
   padding-inline: var(--size-1);
 }
@@ -258,6 +278,33 @@
 
   background: hsl(var(--background));
   color: hsl(var(--text));
+}
+
+/* base overlay layer */
+.player-card::before,
+.player-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-2);
+}
+
+.player-card.is-accused::before {
+  opacity: 0.20;
+  background: var(--orange-9);
+}
+
+.player-card.is-pauser::before {
+  opacity: 0.20;
+  background: var(--green-9);
+}
+
+.player-card.is-host::after {
+  box-shadow: 0 0 0 var(--border-size-2) hsl(var(--yellow-5)),
+    var(--shadow-3);
 }
 
 .player-name {

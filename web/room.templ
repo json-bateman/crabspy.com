@@ -93,7 +93,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 						Username:    m.Username,
 						DisplayName: m.DisplayName,
 						CrabAvatar:  m.CrabAvatar,
-					}, m.ID == room.HostID)
+					}, m.ID == room.HostID, true, true)
 				}
 			</div>
 		</div>
@@ -146,13 +146,15 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 			}
 		</div>
 		if game.Paused == 1 {
-			<div class="flex justify-center flex-wrap gap-4">
+			<div class="flex relative justify-center flex-wrap gap-4">
 				for _, m := range members {
-					@PlayerCard(Player{
-						Username:    m.Username,
-						DisplayName: m.DisplayName,
-						CrabAvatar:  m.CrabAvatar,
-					}, m.ID == room.HostID)
+					<div data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }>
+						@PlayerCard(Player{
+							Username:    m.Username,
+							DisplayName: m.DisplayName,
+							CrabAvatar:  m.CrabAvatar,
+						}, m.ID == room.HostID, m.ID == game.PausedID.Int64, m.ID == game.AccusedID.Int64)
+					</div>
 				}
 			</div>
 		}

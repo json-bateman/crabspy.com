@@ -98,7 +98,7 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 }
 
 const getGameByRoomID = `-- name: GetGameByRoomID :one
-SELECT room_id, spy_id, location, paused, started_at, timer_remaining FROM games WHERE room_id = ?
+SELECT room_id, spy_id, location, started_at, paused, timer_remaining, paused_id, accused_id FROM games WHERE room_id = ?
 `
 
 func (q *Queries) GetGameByRoomID(ctx context.Context, roomID int64) (Game, error) {
@@ -108,9 +108,11 @@ func (q *Queries) GetGameByRoomID(ctx context.Context, roomID int64) (Game, erro
 		&i.RoomID,
 		&i.SpyID,
 		&i.Location,
-		&i.Paused,
 		&i.StartedAt,
+		&i.Paused,
 		&i.TimerRemaining,
+		&i.PausedID,
+		&i.AccusedID,
 	)
 	return i, err
 }
@@ -283,34 +285,6 @@ func (q *Queries) LeaveRoom(ctx context.Context, arg LeaveRoomParams) error {
 	return err
 }
 
-const togglePauseGame = `-- name: TogglePauseGame :exec
-UPDATE games 
-SET paused = 1 - paused 
-WHERE room_id = ?
-RETURNING room_id, spy_id, location, paused, started_at, timer_remaining
-`
-
-func (q *Queries) TogglePauseGame(ctx context.Context, roomID int64) error {
-	_, err := q.db.ExecContext(ctx, togglePauseGame, roomID)
-	return err
-}
-
-const updateGameTimer = `-- name: UpdateGameTimer :exec
-UPDATE games
-SET timer_remaining = ?
-WHERE room_id = ?
-`
-
-type UpdateGameTimerParams struct {
-	TimerRemaining int64 `json:"timer_remaining"`
-	RoomID         int64 `json:"room_id"`
-}
-
-func (q *Queries) UpdateGameTimer(ctx context.Context, arg UpdateGameTimerParams) error {
-	_, err := q.db.ExecContext(ctx, updateGameTimer, arg.TimerRemaining, arg.RoomID)
-	return err
-}
-
 const updateRoomHost = `-- name: UpdateRoomHost :exec
 UPDATE rooms SET host_id = ? WHERE id = ?
 `
@@ -336,33 +310,5 @@ type UpdateRoomStateParams struct {
 
 func (q *Queries) UpdateRoomState(ctx context.Context, arg UpdateRoomStateParams) error {
 	_, err := q.db.ExecContext(ctx, updateRoomState, arg.State, arg.ID)
-	return err
-}
-
-const upsertGameForRoom = `-- name: UpsertGameForRoom :exec
-INSERT INTO games (room_id, spy_id, location, paused, timer_remaining, started_at)
-VALUES (?, ?, ?, 0, ?, unixepoch())
-ON CONFLICT(room_id) DO UPDATE SET
-    spy_id = excluded.spy_id,
-    location = excluded.location,
-    paused = excluded.paused,
-    timer_remaining = excluded.timer_remaining,
-    started_at = excluded.started_at
-`
-
-type UpsertGameForRoomParams struct {
-	RoomID         int64  `json:"room_id"`
-	SpyID          int64  `json:"spy_id"`
-	Location       string `json:"location"`
-	TimerRemaining int64  `json:"timer_remaining"`
-}
-
-func (q *Queries) UpsertGameForRoom(ctx context.Context, arg UpsertGameForRoomParams) error {
-	_, err := q.db.ExecContext(ctx, upsertGameForRoom,
-		arg.RoomID,
-		arg.SpyID,
-		arg.Location,
-		arg.TimerRemaining,
-	)
 	return err
 }

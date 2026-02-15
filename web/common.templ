@@ -2,10 +2,6 @@ package web
 
 import "fmt"
 
-templ Header() {
-	<header></header>
-}
-
 templ Error(msg string) {
 	<div id="error">{ msg }</div>
 }
@@ -26,15 +22,12 @@ templ Dialog(id string, title string, body templ.Component) {
 	</dialog>
 }
 
-type Player struct {
-	Username    string
-	DisplayName string
-	CrabAvatar  string
-}
-
-templ PlayerCard(p Player, isHost bool) {
+templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool) {
 	<div
-		class="player-card shadow"
+		class={ "player-card shadow " +
+			BoolClass(isHost, "is-host") +
+			BoolClass(isPauser, "is-pauser") +
+			BoolClass(isAccused, "is-accused") }
 		style={ getUserColor(p.Username, "border-color") }
 	>
 		<img
@@ -49,6 +42,12 @@ templ PlayerCard(p Player, isHost bool) {
 		</span>
 		if isHost {
 			<span class="host-float">HOST</span>
+		}
+		if isPauser {
+			<span class="pause-float">ACCUSER</span>
+		}
+		if isAccused {
+			<span class="accused-float">ACCUSED</span>
 		}
 	</div>
 }
@@ -82,4 +81,11 @@ func getUserColor(username string, css string) templ.SafeCSS {
 	cssVal := fmt.Sprintf("%s: %s", css, colors[index])
 
 	return templ.SafeCSS(cssVal)
+}
+
+func BoolClass(cond bool, name string) string {
+	if cond {
+		return name + " "
+	}
+	return ""
 }
