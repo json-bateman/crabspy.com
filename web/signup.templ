@@ -10,11 +10,12 @@ templ Signup(signupRules SignupRules) {
 				<h3>Welcome to Crabspy</h3>
 				<span>Already have an account?&nbsp;<a class="hover-accent" href="/login">Login</a></span>
 				<div class="flex-col mt-4">
-					<label>Username</label>
+					<label for="signup-username">Username</label>
 					<input
-						id="username"
+						id="signup-username"
+						name="signup-username"
+						autocomplete="username"
 						type="username"
-						name="username"
 						data-bind:username
 						class="input input-secondary"
 						data-on:keydown__debounce.300ms="@post('/validate/signup')"
@@ -31,11 +32,11 @@ templ Signup(signupRules SignupRules) {
 					}
 				</div>
 				<div class="flex-col mb-2">
-					<label>Password</label>
+					<label for="signup-password">Password</label>
 					<input
-						id="password"
+						id="signup-password"
+						name="signup-password"
 						type="password"
-						name="password"
 						autocomplete="current-password"
 						data-bind:password
 						class="input input-secondary"
@@ -49,11 +50,9 @@ templ Signup(signupRules SignupRules) {
 						<span class="validation-success">✓ At least 8 characters</span>
 					}
 				</div>
-				<div>
-					if signupRules.Has8 && !signupRules.UsernameTaken && signupRules.LessThan12 {
-						<button class="btn btn-secondary" data-on:click="@post('/signup')">Signup</button>
-					}
-				</div>
+				if signupRules.Has8 && !signupRules.UsernameTaken && signupRules.LessThan12 {
+					<button class="btn btn-secondary" data-on:click="@post('/signup')">Signup</button>
+				}
 				@Error("")
 			</div>
 		</main>

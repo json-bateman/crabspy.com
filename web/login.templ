@@ -10,8 +10,11 @@ templ Login(errMsg string) {
 				<h3>We're so back</h3>
 				<span>Don't have an account yet?&nbsp;<a class="hover-secondary" href="/signup">Signup</a></span>
 				<div class="flex-col mt-4">
-					<label>Username</label>
+					<label for="login-username">Username</label>
 					<input
+						id="login-username"
+						name="login-username"
+						autocomplete="username"
 						if errMsg != "" {
 							class="input input-error"
 						} else {
@@ -31,8 +34,11 @@ templ Login(errMsg string) {
 					/>
 				</div>
 				<div class="flex-col mb-2">
-					<label>Password</label>
+					<label for="login-password">Password</label>
 					<input
+						id="login-password"
+						name="login-password"
+						autocomplete="current-password"
 						if errMsg != "" {
 							class="input input-error"
 						} else {
@@ -51,9 +57,7 @@ templ Login(errMsg string) {
 						aria-describedby="password"
 					/>
 				</div>
-				<div>
-					<button class="btn btn-accent" data-on:click="@post('/login')">Login</button>
-				</div>
+				<button class="btn btn-accent shadow" data-on:click="@post('/login')">Login</button>
 				if errMsg != "" {
 					<div class="color-error">{ errMsg }</div>
 				}

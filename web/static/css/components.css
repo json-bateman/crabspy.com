@@ -86,7 +86,7 @@
   background-color: hsl(var(--primary) / 0.05);
   color: hsl(var(--text));
   border: var(--border-size-2) solid hsl(var(--primary));
-  max-inline-size: var(--size-13);
+  inline-size: var(--size-13);
   padding-left: var(--size-1);
   padding-block: var(--size-1);
   block-size: var(--size-7);

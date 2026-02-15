@@ -9,8 +9,10 @@ templ Host(rules HostRules, user sqlcgen.User) {
 				<h3>Host a Room</h3>
 				<div class="flex-col items-center gap-2 mt-4">
 					<div class="flex-col">
-						<label>Room name</label>
+						<label for="room-name">Room name</label>
 						<input
+							id="room-name"
+							name="room-name"
 							data-on:keydown__debounce.300ms="@post('/validate/host')"
 							class="input"
 							type="text"
@@ -18,6 +20,7 @@ templ Host(rules HostRules, user sqlcgen.User) {
 							data-bind:room-name
 							placeholder="Room Name..."
 							spellcheck="false"
+							autocomplete="off"
 						/>
 						if rules.NameEmpty || rules.NameTooLong {
 							if rules.NameTooLong {
@@ -30,17 +33,27 @@ templ Host(rules HostRules, user sqlcgen.User) {
 						}
 					</div>
 					<div class="flex-col">
-						<label>Locations</label>
-						<select class="select" data-bind:locations>
+						<label for="locations">Locations</label>
+						<select
+							id="locations"
+							name="locations"
+							class="select"
+							data-bind:locations
+						>
 							<option value="15">15</option>
 							<option value="20">20</option>
-							<option value="25">20</option>
+							<option value="25">25</option>
 							<option selected value="30">30</option>
 						</select>
 					</div>
-					<div class="flex-col mb-2">
-						<label>Max players</label>
-						<select class="select" data-bind:max-players>
+					<div class="flex-col">
+						<label for="max-players">Max players</label>
+						<select
+							id="max-players"
+							name="max-players"
+							class="select"
+							data-bind:max-players
+						>
 							<option value="3">3</option>
 							<option value="4">4</option>
 							<option value="5">5</option>
@@ -50,8 +63,13 @@ templ Host(rules HostRules, user sqlcgen.User) {
 						</select>
 					</div>
 					<div class="flex-col mb-2">
-						<label>Timer Duration</label>
-						<select class="select" data-bind:timer-duration>
+						<label for="timer-duration">Timer Duration</label>
+						<select
+							id="timer-duration"
+							name="timer-duration"
+							class="select"
+							data-bind:timer-duration
+						>
 							<option value="360">6 minutes</option>
 							<option selected value="480">8 minutes</option>
 							<option value="600">10 minutes</option>
@@ -59,7 +77,12 @@ templ Host(rules HostRules, user sqlcgen.User) {
 						</select>
 					</div>
 					if !rules.NameEmpty && !rules.NameTooLong {
-						<button class="btn" data-on:click="@post('/host')">Host Room</button>
+						<button
+							class="btn shadow"
+							data-on:click="@post('/host')"
+						>
+							Host Room
+						</button>
 					}
 					@Error("")
 				</div>
