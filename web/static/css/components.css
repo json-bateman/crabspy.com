@@ -176,32 +176,6 @@
   border-bottom: var(--border-size-2) solid hsl(var(--primary));
 }
 
-/* Loader */
-.loader {
-  inline-size: var(--size-px-8);
-  block-size: var(--size-px-8);
-  display: inline-block;
-  position: relative;
-}
-
-.loader::after,
-.loader::before {
-  content: "";
-  box-sizing: border-box;
-  inline-size: var(--size-px-8);
-  block-size: var(--size-px-8);
-  border-radius: var(--radius-round);
-  border: var(--border-size-2) solid #fff;
-  position: absolute;
-  left: 0;
-  top: 0;
-  animation: animloader 2s linear infinite;
-}
-
-.loader::after {
-  animation-delay: 1s;
-}
-
 @keyframes animloader {
   0% {
     transform: scale(0);
@@ -212,23 +186,6 @@
     transform: scale(1);
     opacity: 0;
   }
-}
-
-.splash-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  max-inline-size: var(--size-sm);
-  inline-size: 100%;
-  block-size: auto;
-  border: var(--border-size-3) groove var(--primary);
-  overflow: hidden;
-}
-
-.splash-container img {
-  object-fit: contain;
-  inline-size: 100%;
-  block-size: auto;
 }
 
 .validation {
@@ -265,6 +222,7 @@
 
   position: fixed;
   inset-block-start: var(--size-3);
+
   /* center horizontally */
   inset-inline-start: 50%;
   transform: translateX(-50%);
@@ -272,29 +230,14 @@
 }
 
 .dialog::backdrop {
-  background: hsl(0 0% 0% / 0.55);
+  background: hsl(0 0% 0% / 0.50);
   backdrop-filter: blur(2px);
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--size-2);
-  margin-bottom: var(--size-3);
 }
 
 .dialog-title {
   font-size: var(--font-size-4);
   font-weight: var(--font-weight-7);
   letter-spacing: var(--font-letterspacing-2);
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--size-2);
-  margin-top: var(--size-3);
 }
 
 .player-card {
@@ -319,11 +262,18 @@
 
 .player-name {
   inline-size: 100%;
-
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-3);
+  text-align: center;
+}
 
+.info-card {
+  padding: var(--size-1);
+  border: var(--border-size-2) solid hsl(var(--text));
+  box-shadow: 4px 4px 4px #000;
+  background-color: hsl(var(--accent));
+  border-radius: var(--radius-2);
   text-align: center;
 }

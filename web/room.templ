@@ -17,13 +17,13 @@ templ RoomPage(room sqlcgen.Room, game *sqlcgen.Game, members []sqlcgen.GetRoomM
 
 templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div class="flex-col px-2 max-w-content-3 w-full mt-4">
-		<div class="bg border-2 rounded-2 p-4 shadow">
+		<div class="bg border-2 rounded-2 p-3 shadow">
 			<div class="flex flex-wrap justify-between uppercase mb-3">
 				<span class="text-2xl w-full font-bold color-primary">{ room.Name }</span>
 				<div class="flex-col justify-center gap-2">
 					<div class="flex items-center">
 						<span class="color-text">Room Code:&ensp;</span>
-						<span class="font-bold color-secondary">{ room.Code }</span>
+						<span class="font-bold text-lg color-accent">{ room.Code }</span>
 					</div>
 					<div class="cursor-pointer" onclick="copyRoomUrl(this)">
 						<div class="flex">
@@ -63,14 +63,18 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 					</div>
 				</div>
 			</div>
-			<div class="grid grid-cols-2">
-				<div class="p-2 border-2 shadow bg-secondary rounded-2 text-center">
+			<div class="grid grid-9 gap-2">
+				<div class="info-card">
 					<div class="text-sm uppercase font-bold">Locations</div>
-					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
+					<div class="text-xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
 				</div>
-				<div class="p-2 border-2 shadow bg-primary rounded-2 text-center">
-					<div class="text-sm uppercase font-bold">Max Players</div>
-					<div class="text-3xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
+				<div class="info-card">
+					<div class="text-sm uppercase font-bold">Players</div>
+					<div class="text-xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
+				</div>
+				<div class="info-card">
+					<div class="text-sm uppercase font-bold">Timer</div>
+					<div class="text-xl font-bold">{ fmt.Sprintf("%d:00", room.TimerDuration / 60) }</div>
 				</div>
 			</div>
 		</div>

@@ -12,7 +12,7 @@ templ Error(msg string) {
 
 templ Dialog(id string, title string, body templ.Component) {
 	<dialog id={ id } class="dialog relative">
-		<div class="dialog-header justify-center">
+		<div class="flex items-center justify-center gap-2 mb-3">
 			<div class="dialog-title">{ title }</div>
 			<span
 				type="button"
@@ -38,6 +38,7 @@ templ PlayerCard(p Player, isHost bool) {
 		style={ getUserColor(p.Username, "border-color") }
 	>
 		<img
+			class="pixelated"
 			src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", p.CrabAvatar)) }
 		/>
 		<span

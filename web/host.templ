@@ -8,12 +8,23 @@ templ Host(rules HostRules, user sqlcgen.User) {
 			<div class="flex-col w-full items-center mt-4">
 				<h3>Host a Room</h3>
 				<div class="flex-col items-center gap-2 mt-4">
-					<div class="flex-col">
+					<div
+						class="flex-col"
+						data-on:keydown={ `
+                        ` }
+					>
 						<label for="room-name">Room name</label>
 						<input
 							id="room-name"
 							name="room-name"
-							data-on:keydown__debounce.300ms="@post('/validate/host')"
+							data-on:keydown__debounce.300ms={ `
+                                if (evt.key !== 'Enter') { 
+                                    @post('/validate/host')
+                                    return;
+                                } else {
+                                    @post('/host');
+                                }
+                            ` }
 							class="input"
 							type="text"
 							required

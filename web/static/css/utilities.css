@@ -2,6 +2,10 @@
 /* Utility Classes */
 /* ~~~~~~~~~~~~~~~ */
 
+.pixelated {
+  image-rendering: pixelated;
+}
+
 .bg {
   background-color: hsl(var(--background));
 }
@@ -32,14 +36,9 @@
 }
 
 /* Grid */
-.grid-14 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--size-px-14), 1fr));
-  grid-gap: var(--size-px-4);
-}
 
-.grid-13 {
-  grid-template-columns: max-content(var(--size-px-13));
+.grid-9 {
+  grid-template-columns: repeat(auto-fit, minmax(var(--size-px-9), 1fr));
 }
 
 .grid {

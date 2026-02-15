@@ -70,7 +70,7 @@ templ Home(user sqlcgen.User) {
 }
 
 templ UserDialogBody(id string) {
-	<div class="grid grid-cols-4 justify-items-center cursor-pointer">
+	<div class="grid grid-cols-4 justify-items-center cursor-pointer pixelated">
 		for _, pngStr := range PlayerCrabAvatars {
 			if !strings.Contains(strings.ToLower(pngStr), "spy") {
 				<img

@@ -5,7 +5,7 @@ templ Login(errMsg string) {
 		<main id="morphTarget">
 			<div class="mt-4 flex-col w-full items-center">
 				<div style="inline-size: 80px; block-size: 80px;">
-					<img class="w-full contain" src={ StaticPath("images/player-crabs/tourist-crab.png") }/>
+					<img class="w-full contain pixelated" src={ StaticPath("images/player-crabs/tourist-crab.png") }/>
 				</div>
 				<h3>We're so back</h3>
 				<span>Don't have an account yet?&nbsp;<a class="hover-secondary" href="/signup">Signup</a></span>
@@ -22,11 +22,11 @@ templ Login(errMsg string) {
 						}
 						type="text"
 						data-on:keydown={ `
-                if (evt.key !== 'Enter' || !$username.trim().length || !$password.trim().length) { 
-                    return; 
-                };
-                @post('/login');
-            ` }
+                            if (evt.key !== 'Enter' || !$username.trim().length || !$password.trim().length) { 
+                                return; 
+                            };
+                            @post('/login');
+                        ` }
 						required
 						data-bind:username
 						aria-live="polite"
