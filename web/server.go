@@ -88,8 +88,9 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Get("/room/{code}", roomPage(db, bus))
 		r.Post("/private", privateRoom(db))
 		r.Post("/room/{code}/start", startGame(db, bus))
-		r.Post("/room/{code}/pause", pauseGameSetPauser(db, bus))
-		r.Post("/room/{code}/accuse/{id}", setAccused(db, bus))
+		r.Post("/room/{code}/pause", togglePauseWithState(db, bus))
+		r.Post("/room/{code}/end", togglePauseWithState(db, bus))
+		r.Post("/room/{code}/accuse/{id}", setAccusedIfAllowed(db, bus))
 
 		r.Get("/sse/room/{code}", roomSSE(db, bus))
 	})
@@ -518,7 +519,7 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		bus.NotifyRoom(room.ID)
 	}
 }
-func pauseGameSetPauser(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+func togglePauseWithState(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
 		var signals GameSignals
@@ -533,18 +534,12 @@ func pauseGameSetPauser(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error GetRoomByCode()", "Error", err)
 			return
 		}
-		if err := q.UpdateGameTimer(r.Context(), sqlcgen.UpdateGameTimerParams{
+		if err := q.TogglePauseWithState(r.Context(), sqlcgen.TogglePauseWithStateParams{
 			RoomID:         room.ID,
 			TimerRemaining: int64(signals.Timer),
+			PausedID:       sql.NullInt64{Valid: true, Int64: userID},
 		}); err != nil {
-			slog.Error("Error GetGameByRoomID()", "Error", err)
-			return
-		}
-		if err := q.TogglePauseGame(r.Context(), sqlcgen.TogglePauseGameParams{
-			PausedID: sql.NullInt64{Valid: true, Int64: userID},
-			RoomID:   room.ID,
-		}); err != nil {
-			slog.Error("Error TogglePauseGame()", "err", err)
+			slog.Error("Error TogglePauseWithState()", "Error", err)
 			return
 		}
 
@@ -552,7 +547,7 @@ func pauseGameSetPauser(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	}
 }
 
-func setAccused(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+func setAccusedIfAllowed(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
 
@@ -564,26 +559,18 @@ func setAccused(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error GetRoomByCode()", "Error", err)
 			return
 		}
-		game, err := q.GetGameByRoomID(r.Context(), room.ID)
-		if err != nil {
-			slog.Error("Error GetGameByRoomID()", "Error", err)
-			return
-		}
-		if game.PausedID.Int64 != userID {
-			// Only pauser can accuse someone
-			return
-		}
 		accused, err := strconv.ParseInt(accusedId, 10, 64)
 		if err != nil {
 			slog.Error("Error converting string to int in host form.", "Error", err)
 			return
 		}
-		err = q.UpdateAccused(r.Context(), sqlcgen.UpdateAccusedParams{
-			AccusedID: sql.NullInt64{Valid: true, Int64: int64(accused)},
+		if err = q.SetAccusedIfAllowed(r.Context(), sqlcgen.SetAccusedIfAllowedParams{
+			AccusedID: sql.NullInt64{Valid: true, Int64: accused},
 			RoomID:    room.ID,
-		})
-		if err != nil {
-			slog.Error("Error UpdateAccused()", "err", err)
+			PausedID:  sql.NullInt64{Valid: true, Int64: userID},
+			UserID:    accused,
+		}); err != nil {
+			slog.Error("Error SetAccusedIfAllowed()", "err", err)
 			return
 		}
 

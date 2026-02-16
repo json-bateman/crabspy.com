@@ -10,56 +10,55 @@ import (
 	"database/sql"
 )
 
-const togglePauseGame = `-- name: TogglePauseGame :exec
-UPDATE games 
-SET 
-    paused = 1 - paused,
-    paused_id = ?,
-    accused_id = NULL
-
-WHERE room_id = ?
-RETURNING room_id, spy_id, location, started_at, paused, timer_remaining, paused_id, accused_id
-`
-
-type TogglePauseGameParams struct {
-	PausedID sql.NullInt64 `json:"paused_id"`
-	RoomID   int64         `json:"room_id"`
-}
-
-func (q *Queries) TogglePauseGame(ctx context.Context, arg TogglePauseGameParams) error {
-	_, err := q.db.ExecContext(ctx, togglePauseGame, arg.PausedID, arg.RoomID)
-	return err
-}
-
-const updateAccused = `-- name: UpdateAccused :exec
+const setAccusedIfAllowed = `-- name: SetAccusedIfAllowed :exec
 UPDATE games
 SET accused_id = ?
-WHERE room_id = ?
+WHERE games.room_id = ?
+  AND games.paused = 1
+  AND games.paused_id = ?
+  AND EXISTS (
+    SELECT 1
+    FROM room_members AS rm
+    WHERE rm.room_id = games.room_id
+      AND rm.user_id = ?
+  )
 `
 
-type UpdateAccusedParams struct {
+type SetAccusedIfAllowedParams struct {
 	AccusedID sql.NullInt64 `json:"accused_id"`
 	RoomID    int64         `json:"room_id"`
+	PausedID  sql.NullInt64 `json:"paused_id"`
+	UserID    int64         `json:"user_id"`
 }
 
-func (q *Queries) UpdateAccused(ctx context.Context, arg UpdateAccusedParams) error {
-	_, err := q.db.ExecContext(ctx, updateAccused, arg.AccusedID, arg.RoomID)
+func (q *Queries) SetAccusedIfAllowed(ctx context.Context, arg SetAccusedIfAllowedParams) error {
+	_, err := q.db.ExecContext(ctx, setAccusedIfAllowed,
+		arg.AccusedID,
+		arg.RoomID,
+		arg.PausedID,
+		arg.UserID,
+	)
 	return err
 }
 
-const updateGameTimer = `-- name: UpdateGameTimer :exec
+const togglePauseWithState = `-- name: TogglePauseWithState :exec
 UPDATE games
-SET timer_remaining = ?
+SET
+  timer_remaining = ?,
+  paused = 1 - paused,
+  paused_id = CASE WHEN paused = 1 THEN NULL ELSE ? END,
+  accused_id = NULL
 WHERE room_id = ?
 `
 
-type UpdateGameTimerParams struct {
-	TimerRemaining int64 `json:"timer_remaining"`
-	RoomID         int64 `json:"room_id"`
+type TogglePauseWithStateParams struct {
+	TimerRemaining int64         `json:"timer_remaining"`
+	PausedID       sql.NullInt64 `json:"paused_id"`
+	RoomID         int64         `json:"room_id"`
 }
 
-func (q *Queries) UpdateGameTimer(ctx context.Context, arg UpdateGameTimerParams) error {
-	_, err := q.db.ExecContext(ctx, updateGameTimer, arg.TimerRemaining, arg.RoomID)
+func (q *Queries) TogglePauseWithState(ctx context.Context, arg TogglePauseWithStateParams) error {
+	_, err := q.db.ExecContext(ctx, togglePauseWithState, arg.TimerRemaining, arg.PausedID, arg.RoomID)
 	return err
 }
 

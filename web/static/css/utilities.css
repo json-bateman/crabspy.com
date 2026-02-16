@@ -410,6 +410,15 @@
   box-shadow: 3px 3px 12px hsl(var(--green-8));
 }
 
+.text-outline {
+  color: white;
+  text-shadow:
+    -1px -1px 0 black,
+    1px -1px 0 black,
+    -1px 1px 0 black,
+    1px 1px 0 black;
+}
+
 
 /* Borders & Radius */
 .border-1 {

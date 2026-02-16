@@ -41,15 +41,21 @@ templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool) {
 			{ p.DisplayName }
 		</span>
 		if isHost {
-			<span class="host-float">HOST</span>
+			<span class="float float-top-left bg color-primary">HOST</span>
 		}
 		if isPauser {
-			<span class="pause-float">ACCUSER</span>
+			<span class="float float-top-right text-outline">ACCUSER</span>
 		}
 		if isAccused {
-			<span class="accused-float">ACCUSED</span>
+			<span class="float float-top-right text-outline">ACCUSED</span>
 		}
 	</div>
+	if isAccused {
+		<div class="flex justify-between mt-2 gap-2">
+			<button class="btn btn-small">Spy!</button>
+			<button class="btn btn-small">Not!</button>
+		</div>
+	}
 }
 
 // getUserColor returns a deterministic color assignment based on username.

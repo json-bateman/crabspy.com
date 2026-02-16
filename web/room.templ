@@ -121,8 +121,20 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 			}, 1000);
 		` }
 	>
+		if room.HostID == playerID {
+			<div class="flex justify-center">
+				<button
+					style="inline-size: var(--size-px-12);"
+					data-on:click="document.getElementById('end-game-dialog').showModal()"
+					class="btn mb-4 mt-4"
+				>End Game</button>
+			</div>
+		}
 		<div class="flex gap-4 justify-center items-center mb-4">
-			<div class="text-2xl font-bold color-primary">
+			<div
+				style="inline-size: 110px;"
+				class="text-2xl font-bold flex justify-center color-primary"
+			>
 				<span data-text="toMMSS($timer)"></span>
 			</div>
 			if game.Paused == 0 {
@@ -158,5 +170,19 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 				}
 			</div>
 		}
+	</div>
+	@Dialog("end-game-dialog", "Are you sure?", EndGameDialogBody("end-game-dialog", room.Code))
+}
+
+templ EndGameDialogBody(id string, code string) {
+	<div class="mt-4 w-full flex justify-center">
+		<button
+			style="inline-size: var(--size-px-12);"
+			class="btn btn-primary"
+			data-on:click={ fmt.Sprintf(
+                    `@post('/room/%s/end');
+                    document.getElementById('%s').close();
+                    `,code, id) }
+		>Yes End Game</button>
 	</div>
 }

@@ -8,23 +8,24 @@ ON CONFLICT(room_id) DO UPDATE SET
     timer_remaining = excluded.timer_remaining,
     started_at = excluded.started_at;
 
--- name: UpdateGameTimer :exec
+-- name: TogglePauseWithState :exec
 UPDATE games
-SET timer_remaining = ?
+SET
+  timer_remaining = ?,
+  paused = 1 - paused,
+  paused_id = CASE WHEN paused = 1 THEN NULL ELSE ? END,
+  accused_id = NULL
 WHERE room_id = ?;
 
--- name: TogglePauseGame :exec
-UPDATE games 
-SET 
-    paused = 1 - paused,
-    paused_id = ?,
-    accused_id = NULL
-
-WHERE room_id = ?
-RETURNING *;
-
--- name: UpdateAccused :exec
+-- name: SetAccusedIfAllowed :exec
 UPDATE games
 SET accused_id = ?
-WHERE room_id = ?;
-
+WHERE games.room_id = ?
+  AND games.paused = 1
+  AND games.paused_id = ?
+  AND EXISTS (
+    SELECT 1
+    FROM room_members AS rm
+    WHERE rm.room_id = games.room_id
+      AND rm.user_id = ?
+  );
