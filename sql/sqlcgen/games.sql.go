@@ -10,6 +10,32 @@ import (
 	"database/sql"
 )
 
+const insertGameEvent = `-- name: InsertGameEvent :exec
+INSERT INTO game_events (room_id, user_id, event_type, target_id, metadata, created_at)
+VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type InsertGameEventParams struct {
+	RoomID    int64          `json:"room_id"`
+	UserID    int64          `json:"user_id"`
+	EventType string         `json:"event_type"`
+	TargetID  sql.NullInt64  `json:"target_id"`
+	Metadata  sql.NullString `json:"metadata"`
+	CreatedAt int64          `json:"created_at"`
+}
+
+func (q *Queries) InsertGameEvent(ctx context.Context, arg InsertGameEventParams) error {
+	_, err := q.db.ExecContext(ctx, insertGameEvent,
+		arg.RoomID,
+		arg.UserID,
+		arg.EventType,
+		arg.TargetID,
+		arg.Metadata,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const setAccusedIfAllowed = `-- name: SetAccusedIfAllowed :exec
 UPDATE games
 SET accused_id = ?
@@ -41,29 +67,8 @@ func (q *Queries) SetAccusedIfAllowed(ctx context.Context, arg SetAccusedIfAllow
 	return err
 }
 
-const togglePauseWithState = `-- name: TogglePauseWithState :exec
-UPDATE games
-SET
-  timer_remaining = ?,
-  paused = 1 - paused,
-  paused_id = CASE WHEN paused = 1 THEN NULL ELSE ? END,
-  accused_id = NULL
-WHERE room_id = ?
-`
-
-type TogglePauseWithStateParams struct {
-	TimerRemaining int64         `json:"timer_remaining"`
-	PausedID       sql.NullInt64 `json:"paused_id"`
-	RoomID         int64         `json:"room_id"`
-}
-
-func (q *Queries) TogglePauseWithState(ctx context.Context, arg TogglePauseWithStateParams) error {
-	_, err := q.db.ExecContext(ctx, togglePauseWithState, arg.TimerRemaining, arg.PausedID, arg.RoomID)
-	return err
-}
-
 const upsertGameForRoom = `-- name: UpsertGameForRoom :exec
-INSERT INTO games (room_id, spy_id, location, paused, timer_remaining, started_at)
+INSERT INTO games (room_id, spy_id, location, paused, timer_duration, started_at)
 VALUES (?, ?, ?, 0, ?, unixepoch())
 ON CONFLICT(room_id) DO UPDATE SET
     spy_id = excluded.spy_id,
@@ -74,10 +79,10 @@ ON CONFLICT(room_id) DO UPDATE SET
 `
 
 type UpsertGameForRoomParams struct {
-	RoomID         int64  `json:"room_id"`
-	SpyID          int64  `json:"spy_id"`
-	Location       string `json:"location"`
-	TimerRemaining int64  `json:"timer_remaining"`
+	RoomID        int64  `json:"room_id"`
+	SpyID         int64  `json:"spy_id"`
+	Location      string `json:"location"`
+	TimerDuration int64  `json:"timer_duration"`
 }
 
 func (q *Queries) UpsertGameForRoom(ctx context.Context, arg UpsertGameForRoomParams) error {
@@ -85,7 +90,7 @@ func (q *Queries) UpsertGameForRoom(ctx context.Context, arg UpsertGameForRoomPa
 		arg.RoomID,
 		arg.SpyID,
 		arg.Location,
-		arg.TimerRemaining,
+		arg.TimerDuration,
 	)
 	return err
 }

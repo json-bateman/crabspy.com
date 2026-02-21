@@ -98,7 +98,7 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 }
 
 const getGameByRoomID = `-- name: GetGameByRoomID :one
-SELECT room_id, spy_id, location, started_at, paused, timer_remaining, paused_id, accused_id FROM games WHERE room_id = ?
+SELECT room_id, spy_id, location, started_at, paused, timer_duration, paused_id, accused_id FROM games WHERE room_id = ?
 `
 
 func (q *Queries) GetGameByRoomID(ctx context.Context, roomID int64) (Game, error) {
@@ -110,7 +110,7 @@ func (q *Queries) GetGameByRoomID(ctx context.Context, roomID int64) (Game, erro
 		&i.Location,
 		&i.StartedAt,
 		&i.Paused,
-		&i.TimerRemaining,
+		&i.TimerDuration,
 		&i.PausedID,
 		&i.AccusedID,
 	)

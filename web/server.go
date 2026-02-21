@@ -534,6 +534,10 @@ func togglePauseWithState(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error GetRoomByCode()", "Error", err)
 			return
 		}
+		// I want the person who paused to only be able to pause once...
+		// Should I make another game table that has the state of players?
+		// table game_members
+		// has_paused,
 		if err := q.TogglePauseWithState(r.Context(), sqlcgen.TogglePauseWithStateParams{
 			RoomID:         room.ID,
 			TimerRemaining: int64(signals.Timer),

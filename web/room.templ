@@ -159,13 +159,24 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 		</div>
 		if game.Paused == 1 {
 			<div class="flex relative justify-center flex-wrap gap-4">
+				if (playerID == game.PausedID.Int64) {
+					<div>Click on the Crabatar you think is the spy</div>
+				} else {
+					<div>The Accuser will now pick a Crabatar to accuse</div>
+				}
 				for _, m := range members {
-					<div data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }>
+					<div class="flex-col" data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }>
 						@PlayerCard(Player{
 							Username:    m.Username,
 							DisplayName: m.DisplayName,
 							CrabAvatar:  m.CrabAvatar,
 						}, m.ID == room.HostID, m.ID == game.PausedID.Int64, m.ID == game.AccusedID.Int64)
+						if (game.AccusedID.Int64 == m.ID && game.AccusedID.Int64 != playerID) {
+							<div class="flex justify-between mt-2 gap-2">
+								<button class="btn btn-small">Spy!</button>
+								<button class="btn btn-small">Not!</button>
+							</div>
+						}
 					</div>
 				}
 			</div>
