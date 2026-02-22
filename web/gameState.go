@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crabspy/sql/sqlcgen"
 	"time"
 )
@@ -50,6 +51,15 @@ func BuildGameState(game sqlcgen.Game, events []sqlcgen.GameEvent) GameState {
 		}
 	}
 	return state
+}
+
+func getGameState(ctx context.Context, q *sqlcgen.Queries, roomID int64) (sqlcgen.Game, GameState, error) {
+	game, err := q.GetCurrentGame(ctx, roomID)
+	if err != nil {
+		return game, GameState{}, err
+	}
+	events, _ := q.GetGameEvents(ctx, game.ID)
+	return game, BuildGameState(game, events), nil
 }
 
 func (s GameState) TimerRemaining() int64 {

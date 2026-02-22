@@ -22,18 +22,26 @@ templ Dialog(id string, title string, body templ.Component) {
 	</dialog>
 }
 
-templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool) {
+templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool, isSpyAndTime0 bool) {
 	<div
 		class={ "player-card shadow " +
 			BoolClass(isHost, "is-host") +
 			BoolClass(isPauser, "is-pauser") +
-			BoolClass(isAccused, "is-accused") }
+			BoolClass(isAccused, "is-accused") +
+			BoolClass(isSpyAndTime0, "is-spy") }
 		style={ getUserColor(p.Username, "border-color") }
 	>
-		<img
-			class="pixelated"
-			src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", p.CrabAvatar)) }
-		/>
+		if isSpyAndTime0 {
+			<img
+				class="pixelated"
+				src={ StaticPath("images/player-crabs/spy-crab.png") }
+			/>
+		} else {
+			<img
+				class="pixelated"
+				src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", p.CrabAvatar)) }
+			/>
+		}
 		<span
 			style={ getUserColor(p.Username, "color") }
 			class="player-name"
@@ -48,6 +56,9 @@ templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool) {
 		}
 		if isAccused {
 			<span class="float float-top-right text-outline">ACCUSED</span>
+		}
+		if isSpyAndTime0 {
+			<span class="float float-top-right text-outline color-primary">SPY</span>
 		}
 	</div>
 }

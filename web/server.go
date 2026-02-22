@@ -503,13 +503,23 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		spyID := members[rand.Intn(len(members))].ID
 		location := crabspy.Locations[rand.Intn(len(crabspy.Locations))]
 
-		if _, err := q.CreateGame(r.Context(), sqlcgen.CreateGameParams{
+		game, err := q.CreateGame(r.Context(), sqlcgen.CreateGameParams{
 			RoomID:        room.ID,
 			SpyID:         spyID,
 			Location:      location.Title,
 			TimerDuration: room.TimerDuration,
-		}); err != nil {
+		})
+		if err != nil {
 			slog.Error("Error CreateGame()", "err", err)
+		}
+
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: "game_started",
+		}); err != nil {
+			slog.Error("Error InsertGameEvent()", "err", err)
+			return
 		}
 
 		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
@@ -532,14 +542,11 @@ func togglePause(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		game, err := q.GetCurrentGame(r.Context(), room.ID)
+		game, state, err := getGameState(r.Context(), q, room.ID)
 		if err != nil {
-			slog.Error("Error GetCurrentGame()", "Error", err)
+			slog.Error("Error getGameState()", "Error", err)
 			return
 		}
-
-		events, _ := q.GetGameEvents(r.Context(), game.ID)
-		state := BuildGameState(game, events)
 
 		eventType := "paused"
 		if state.Paused {
@@ -582,21 +589,14 @@ func accuse(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		game, err := q.GetCurrentGame(r.Context(), room.ID)
+		game, state, err := getGameState(r.Context(), q, room.ID)
 		if err != nil {
-			slog.Error("Error GetCurrentGame()", "Error", err)
+			slog.Error("Error getGameState()", "Error", err)
 			return
 		}
 
-		events, _ := q.GetGameEvents(r.Context(), game.ID)
-		state := BuildGameState(game, events)
-
-		if state.HasAccused[userID] {
-			return
-		}
-
-		if !state.Paused || state.PausedID != userID {
-			slog.Error("Accuse not allowed", "paused", state.Paused, "pausedID", state.PausedID, "userID", userID)
+		if !state.Paused || state.PausedID != userID || state.HasAccused[userID] {
+			slog.Info("Accuse not allowed", "paused", state.Paused, "pausedID", state.PausedID, "userID", userID)
 			return
 		}
 
@@ -626,9 +626,9 @@ func finishGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		game, err := q.GetCurrentGame(r.Context(), room.ID)
+		game, _, err := getGameState(r.Context(), q, room.ID)
 		if err != nil {
-			slog.Error("Error GetCurrentGame()", "Error", err)
+			slog.Error("Error getGameState()", "Error", err)
 			return
 		}
 

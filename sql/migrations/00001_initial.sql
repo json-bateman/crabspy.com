@@ -42,7 +42,13 @@ CREATE TABLE game_events (
     id INTEGER PRIMARY KEY,
     game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    event_type TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK(event_type IN (
+        'paused',
+        'unpaused',
+        'accused',
+        'game_started',
+        'game_finished'
+    )),
     target_id INTEGER REFERENCES users(id),
     metadata TEXT,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())

@@ -102,7 +102,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 						Username:    m.Username,
 						DisplayName: m.DisplayName,
 						CrabAvatar:  m.CrabAvatar,
-					}, m.ID == room.HostID, false, false)
+					}, m.ID == room.HostID, false, false, false)
 				}
 			</div>
 		</div>
@@ -141,15 +141,15 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 		}
 		<div class="flex gap-4 justify-center items-center mb-4">
 			<div
-				style="inline-size: 110px;"
-				class="text-2xl font-bold flex justify-center color-primary"
+				style="inline-size: 100px;"
+				class="text-2xl font-bold flex justify-left color-primary"
 			>
 				<span data-text="toMMSS($timer)"></span>
 			</div>
 			if game.Paused && game.PausedID == playerID {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
-					class="text-3xl border-2 rounded-2"
+					class="text-3xl border-2 rounded-2 cursor-pointer"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
 						<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"></path>
@@ -158,8 +158,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 			} else if !game.Paused && game.HasPaused[playerID] {
 				<div
 					data-tooltip="You already used your pause"
-					class="text-3xl border-2 rounded-2
-  opacity-50"
+					class="text-3xl border-2 rounded-2 opacity-50 cursor-not-allowed"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
 						<path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"></path>
@@ -168,7 +167,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 			} else if !game.Paused {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
-					class="text-3xl border-2 rounded-2"
+					class="text-3xl border-2 rounded-2 cursor-pointer"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
 						<path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"></path>
@@ -176,6 +175,18 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 				</div>
 			}
 		</div>
+		if game.SpyID == playerID {
+			<div class="text-lg text-center w-full">You are the Spy!</div>
+			<div class="flex justify-center">
+				<button
+					style="inline-size: var(--size-px-12);"
+					data-on:click="document.getElementById('reveal-dialog').showModal()"
+					class="btn mb-4 mt-4"
+				>Reveal Location</button>
+			</div>
+		} else {
+			<div class="text-lg text-center w-full">{ game.Location }</div>
+		}
 		if game.Paused || game.TimerRemaining() == 0 {
 			<div class="flex-col gap-2">
 				if playerID == game.PausedID {
@@ -192,7 +203,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 								Username:    m.Username,
 								DisplayName: m.DisplayName,
 								CrabAvatar:  m.CrabAvatar,
-							}, m.ID == room.HostID, m.ID == game.PausedID, m.ID == game.AccusedID)
+							}, m.ID == room.HostID, m.ID == game.PausedID, m.ID == game.AccusedID, game.TimerRemaining() == 0 && m.ID == game.SpyID)
 							if game.AccusedID == m.ID && game.AccusedID != playerID {
 								<div class="flex justify-between mt-2 gap-2">
 									<button class="btn btn-small">Spy!</button>
@@ -206,6 +217,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 		}
 	</div>
 	@Dialog("finish-game-dialog", "Are you sure?", FinishGameDialogBody("finish-game-dialog", room.Code))
+	@Dialog("reveal-dialog", "This will end the game, proceed?", FinishGameDialogBody("reveal-dialog", room.Code))
 }
 
 templ FinishGameDialogBody(id string, code string) {
@@ -218,5 +230,18 @@ templ FinishGameDialogBody(id string, code string) {
                     document.getElementById('%s').close();
                     `,code, id) }
 		>Yes Finish Game</button>
+	</div>
+}
+
+templ RevealLocationDialog(id string, code string) {
+	<div class="mt-4 w-full flex justify-center">
+		<button
+			style="inline-size: var(--size-px-12);"
+			class="btn btn-primary"
+			data-on:click={ fmt.Sprintf(
+                    `@post('/room/%s/reveal');
+                    document.getElementById('%s').close();
+                    `,code, id) }
+		>Yes Reveal Location</button>
 	</div>
 }
