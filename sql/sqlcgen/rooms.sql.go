@@ -97,26 +97,6 @@ func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
 	return items, nil
 }
 
-const getGameByRoomID = `-- name: GetGameByRoomID :one
-SELECT room_id, spy_id, location, started_at, paused, timer_duration, paused_id, accused_id FROM games WHERE room_id = ?
-`
-
-func (q *Queries) GetGameByRoomID(ctx context.Context, roomID int64) (Game, error) {
-	row := q.db.QueryRowContext(ctx, getGameByRoomID, roomID)
-	var i Game
-	err := row.Scan(
-		&i.RoomID,
-		&i.SpyID,
-		&i.Location,
-		&i.StartedAt,
-		&i.Paused,
-		&i.TimerDuration,
-		&i.PausedID,
-		&i.AccusedID,
-	)
-	return i, err
-}
-
 const getRoomByCode = `-- name: GetRoomByCode :one
 SELECT id, name, code, host_id, max_locations, max_players, created_at, state, timer_duration FROM rooms WHERE code = ?
 `

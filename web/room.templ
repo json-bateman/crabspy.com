@@ -3,7 +3,7 @@ package web
 import "crabspy/sql/sqlcgen"
 import "fmt"
 
-templ RoomPage(room sqlcgen.Room, game *sqlcgen.Game, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+templ RoomPage(room sqlcgen.Room, game *GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	@Base(room.Name) {
 		<main id="morphTarget" class="items-center" data-init={ fmt.Sprintf("@get('/sse/room/%s')", room.Code) }>
 			if room.State == "game" && game != nil {
@@ -93,18 +93,17 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 						Username:    m.Username,
 						DisplayName: m.DisplayName,
 						CrabAvatar:  m.CrabAvatar,
-					}, m.ID == room.HostID, true, true)
+					}, m.ID == room.HostID, false, false)
 				}
 			</div>
 		</div>
 	</div>
 }
 
-templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div
-		data-signals={ fmt.Sprintf("{timer: %d, paused: %d}", game.TimerRemaining, game.Paused) }
+		data-signals={ fmt.Sprintf("{timer: %d, paused: %t}", game.TimerRemaining(), game.Paused) }
 		data-init={ `
-			// ensure only one interval per mounted element
 			if (el._timerInterval) clearInterval(el._timerInterval);
 
 			el._timerInterval = setInterval(() => {
@@ -125,9 +124,9 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 			<div class="flex justify-center">
 				<button
 					style="inline-size: var(--size-px-12);"
-					data-on:click="document.getElementById('end-game-dialog').showModal()"
+					data-on:click="document.getElementById('finish-game-dialog').showModal()"
 					class="btn mb-4 mt-4"
-				>End Game</button>
+				>Finish Game</button>
 			</div>
 		}
 		<div class="flex gap-4 justify-center items-center mb-4">
@@ -137,10 +136,20 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 			>
 				<span data-text="toMMSS($timer)"></span>
 			</div>
-			if game.Paused == 0 {
+			if game.Paused {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
 					class="text-3xl border-2 rounded-2"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
+						<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"></path>
+					</svg>
+				</div>
+			} else if game.HasPaused[playerID] {
+				<div
+					data-tooltip="You already used your pause"
+					class="text-3xl border-2 rounded-2
+  opacity-50"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
 						<path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"></path>
@@ -152,48 +161,52 @@ templ Game(room sqlcgen.Room, game sqlcgen.Game, members []sqlcgen.GetRoomMember
 					class="text-3xl border-2 rounded-2"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
-						<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"></path>
+						<path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"></path>
 					</svg>
 				</div>
 			}
 		</div>
-		if game.Paused == 1 {
-			<div class="flex relative justify-center flex-wrap gap-4">
-				if (playerID == game.PausedID.Int64) {
+		if game.Paused || game.TimerRemaining() == 0 {
+			<div class="flex-col gap-2">
+				if playerID == game.PausedID {
 					<div>Click on the Crabatar you think is the spy</div>
+				} else if game.TimerRemaining() == 0 {
+					<div class="text-xl color-primary">Spy Wins!</div>
 				} else {
 					<div>The Accuser will now pick a Crabatar to accuse</div>
 				}
-				for _, m := range members {
-					<div class="flex-col" data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }>
-						@PlayerCard(Player{
-							Username:    m.Username,
-							DisplayName: m.DisplayName,
-							CrabAvatar:  m.CrabAvatar,
-						}, m.ID == room.HostID, m.ID == game.PausedID.Int64, m.ID == game.AccusedID.Int64)
-						if (game.AccusedID.Int64 == m.ID && game.AccusedID.Int64 != playerID) {
-							<div class="flex justify-between mt-2 gap-2">
-								<button class="btn btn-small">Spy!</button>
-								<button class="btn btn-small">Not!</button>
-							</div>
-						}
-					</div>
-				}
+				<div class="flex relative justify-center flex-wrap gap-4">
+					for _, m := range members {
+						<div class="flex-col" data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }>
+							@PlayerCard(Player{
+								Username:    m.Username,
+								DisplayName: m.DisplayName,
+								CrabAvatar:  m.CrabAvatar,
+							}, m.ID == room.HostID, m.ID == game.PausedID, m.ID == game.AccusedID)
+							if game.AccusedID == m.ID && game.AccusedID != playerID {
+								<div class="flex justify-between mt-2 gap-2">
+									<button class="btn btn-small">Spy!</button>
+									<button class="btn btn-small">Not!</button>
+								</div>
+							}
+						</div>
+					}
+				</div>
 			</div>
 		}
 	</div>
-	@Dialog("end-game-dialog", "Are you sure?", EndGameDialogBody("end-game-dialog", room.Code))
+	@Dialog("finish-game-dialog", "Are you sure?", FinishGameDialogBody("finish-game-dialog", room.Code))
 }
 
-templ EndGameDialogBody(id string, code string) {
+templ FinishGameDialogBody(id string, code string) {
 	<div class="mt-4 w-full flex justify-center">
 		<button
 			style="inline-size: var(--size-px-12);"
 			class="btn btn-primary"
 			data-on:click={ fmt.Sprintf(
-                    `@post('/room/%s/end');
+                    `@post('/room/%s/finish');
                     document.getElementById('%s').close();
                     `,code, id) }
-		>Yes End Game</button>
+		>Yes Finish Game</button>
 	</div>
 }

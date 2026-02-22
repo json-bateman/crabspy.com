@@ -10,87 +10,145 @@ import (
 	"database/sql"
 )
 
-const insertGameEvent = `-- name: InsertGameEvent :exec
-INSERT INTO game_events (room_id, user_id, event_type, target_id, metadata, created_at)
-VALUES (?, ?, ?, ?, ?, ?)
+const createGame = `-- name: CreateGame :one
+INSERT INTO games (room_id, spy_id, location, timer_duration)
+VALUES (?, ?, ?, ?)
+RETURNING id, room_id, spy_id, location, started_at, timer_duration
 `
 
-type InsertGameEventParams struct {
-	RoomID    int64          `json:"room_id"`
-	UserID    int64          `json:"user_id"`
-	EventType string         `json:"event_type"`
-	TargetID  sql.NullInt64  `json:"target_id"`
-	Metadata  sql.NullString `json:"metadata"`
-	CreatedAt int64          `json:"created_at"`
-}
-
-func (q *Queries) InsertGameEvent(ctx context.Context, arg InsertGameEventParams) error {
-	_, err := q.db.ExecContext(ctx, insertGameEvent,
-		arg.RoomID,
-		arg.UserID,
-		arg.EventType,
-		arg.TargetID,
-		arg.Metadata,
-		arg.CreatedAt,
-	)
-	return err
-}
-
-const setAccusedIfAllowed = `-- name: SetAccusedIfAllowed :exec
-UPDATE games
-SET accused_id = ?
-WHERE games.room_id = ?
-  AND games.paused = 1
-  AND games.paused_id = ?
-  AND EXISTS (
-    SELECT 1
-    FROM room_members AS rm
-    WHERE rm.room_id = games.room_id
-      AND rm.user_id = ?
-  )
-`
-
-type SetAccusedIfAllowedParams struct {
-	AccusedID sql.NullInt64 `json:"accused_id"`
-	RoomID    int64         `json:"room_id"`
-	PausedID  sql.NullInt64 `json:"paused_id"`
-	UserID    int64         `json:"user_id"`
-}
-
-func (q *Queries) SetAccusedIfAllowed(ctx context.Context, arg SetAccusedIfAllowedParams) error {
-	_, err := q.db.ExecContext(ctx, setAccusedIfAllowed,
-		arg.AccusedID,
-		arg.RoomID,
-		arg.PausedID,
-		arg.UserID,
-	)
-	return err
-}
-
-const upsertGameForRoom = `-- name: UpsertGameForRoom :exec
-INSERT INTO games (room_id, spy_id, location, paused, timer_duration, started_at)
-VALUES (?, ?, ?, 0, ?, unixepoch())
-ON CONFLICT(room_id) DO UPDATE SET
-    spy_id = excluded.spy_id,
-    location = excluded.location,
-    paused = excluded.paused,
-    timer_remaining = excluded.timer_remaining,
-    started_at = excluded.started_at
-`
-
-type UpsertGameForRoomParams struct {
+type CreateGameParams struct {
 	RoomID        int64  `json:"room_id"`
 	SpyID         int64  `json:"spy_id"`
 	Location      string `json:"location"`
 	TimerDuration int64  `json:"timer_duration"`
 }
 
-func (q *Queries) UpsertGameForRoom(ctx context.Context, arg UpsertGameForRoomParams) error {
-	_, err := q.db.ExecContext(ctx, upsertGameForRoom,
+func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, error) {
+	row := q.db.QueryRowContext(ctx, createGame,
 		arg.RoomID,
 		arg.SpyID,
 		arg.Location,
 		arg.TimerDuration,
+	)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.RoomID,
+		&i.SpyID,
+		&i.Location,
+		&i.StartedAt,
+		&i.TimerDuration,
+	)
+	return i, err
+}
+
+const getCurrentGame = `-- name: GetCurrentGame :one
+SELECT id, room_id, spy_id, location, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC LIMIT 1
+`
+
+func (q *Queries) GetCurrentGame(ctx context.Context, roomID int64) (Game, error) {
+	row := q.db.QueryRowContext(ctx, getCurrentGame, roomID)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.RoomID,
+		&i.SpyID,
+		&i.Location,
+		&i.StartedAt,
+		&i.TimerDuration,
+	)
+	return i, err
+}
+
+const getGameEvents = `-- name: GetGameEvents :many
+SELECT id, game_id, user_id, event_type, target_id, metadata, created_at FROM game_events WHERE game_id = ? ORDER BY created_at ASC
+`
+
+func (q *Queries) GetGameEvents(ctx context.Context, gameID int64) ([]GameEvent, error) {
+	rows, err := q.db.QueryContext(ctx, getGameEvents, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GameEvent{}
+	for rows.Next() {
+		var i GameEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.UserID,
+			&i.EventType,
+			&i.TargetID,
+			&i.Metadata,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGamesByRoomID = `-- name: GetGamesByRoomID :many
+SELECT id, room_id, spy_id, location, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC
+`
+
+func (q *Queries) GetGamesByRoomID(ctx context.Context, roomID int64) ([]Game, error) {
+	rows, err := q.db.QueryContext(ctx, getGamesByRoomID, roomID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Game{}
+	for rows.Next() {
+		var i Game
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomID,
+			&i.SpyID,
+			&i.Location,
+			&i.StartedAt,
+			&i.TimerDuration,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertGameEvent = `-- name: InsertGameEvent :exec
+INSERT INTO game_events (game_id, user_id, event_type, target_id, metadata)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type InsertGameEventParams struct {
+	GameID    int64          `json:"game_id"`
+	UserID    int64          `json:"user_id"`
+	EventType string         `json:"event_type"`
+	TargetID  sql.NullInt64  `json:"target_id"`
+	Metadata  sql.NullString `json:"metadata"`
+}
+
+func (q *Queries) InsertGameEvent(ctx context.Context, arg InsertGameEventParams) error {
+	_, err := q.db.ExecContext(ctx, insertGameEvent,
+		arg.GameID,
+		arg.UserID,
+		arg.EventType,
+		arg.TargetID,
+		arg.Metadata,
 	)
 	return err
 }

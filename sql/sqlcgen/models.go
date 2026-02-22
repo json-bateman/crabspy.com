@@ -9,19 +9,17 @@ import (
 )
 
 type Game struct {
-	RoomID        int64         `json:"room_id"`
-	SpyID         int64         `json:"spy_id"`
-	Location      string        `json:"location"`
-	StartedAt     int64         `json:"started_at"`
-	Paused        int64         `json:"paused"`
-	TimerDuration int64         `json:"timer_duration"`
-	PausedID      sql.NullInt64 `json:"paused_id"`
-	AccusedID     sql.NullInt64 `json:"accused_id"`
+	ID            int64  `json:"id"`
+	RoomID        int64  `json:"room_id"`
+	SpyID         int64  `json:"spy_id"`
+	Location      string `json:"location"`
+	StartedAt     int64  `json:"started_at"`
+	TimerDuration int64  `json:"timer_duration"`
 }
 
 type GameEvent struct {
 	ID        int64          `json:"id"`
-	RoomID    int64          `json:"room_id"`
+	GameID    int64          `json:"game_id"`
 	UserID    int64          `json:"user_id"`
 	EventType string         `json:"event_type"`
 	TargetID  sql.NullInt64  `json:"target_id"`

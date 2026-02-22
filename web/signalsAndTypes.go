@@ -12,11 +12,6 @@ type HostSignals struct {
 	TimerDuration string `json:"timerDuration"`
 }
 
-type GameSignals struct {
-	Timer  int `json:"timer"`
-	Paused int `json:"paused"`
-}
-
 type HostRules struct {
 	NameTooLong bool
 	NameEmpty   bool

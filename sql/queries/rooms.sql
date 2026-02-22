@@ -19,9 +19,6 @@ FROM room_members rm
 JOIN users ON users.id = rm.user_id
 WHERE rm.room_id = ?;
 
--- name: GetGameByRoomID :one
-SELECT * FROM games WHERE room_id = ?;
-
 ---------------------------
 -- CREATE, UPDATE, DELETE
 ---------------------------

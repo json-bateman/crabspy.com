@@ -88,9 +88,9 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Get("/room/{code}", roomPage(db, bus))
 		r.Post("/private", privateRoom(db))
 		r.Post("/room/{code}/start", startGame(db, bus))
-		r.Post("/room/{code}/pause", togglePauseWithState(db, bus))
-		r.Post("/room/{code}/end", togglePauseWithState(db, bus))
-		r.Post("/room/{code}/accuse/{id}", setAccusedIfAllowed(db, bus))
+		r.Post("/room/{code}/pause", togglePause(db, bus))
+		r.Post("/room/{code}/accuse/{id}", accuse(db, bus))
+		r.Post("/room/{code}/finish", finishGame(db, bus))
 
 		r.Get("/sse/room/{code}", roomSSE(db, bus))
 	})
@@ -395,16 +395,18 @@ func roomPage(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("JoinRoom failed", "err", err)
 		}
 
-		var gamePtr *sqlcgen.Game
+		var gameState *GameState
 		if room.State == "game" {
-			g, err := q.GetGameByRoomID(r.Context(), room.ID)
+			g, err := q.GetCurrentGame(r.Context(), room.ID)
 			if err == nil {
-				gamePtr = &g
+				events, _ := q.GetGameEvents(r.Context(), g.ID)
+				gs := BuildGameState(g, events)
+				gameState = &gs
 			}
 		}
 
 		members, _ := q.GetRoomMembers(r.Context(), room.ID)
-		RoomPage(room, gamePtr, members, userID).Render(r.Context(), w)
+		RoomPage(room, gameState, members, userID).Render(r.Context(), w)
 
 		bus.NotifyRoom(room.ID)
 	}
@@ -438,16 +440,16 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			case <-ch:
 				room, _ := q.GetRoomById(r.Context(), room.ID)
 				members, _ := q.GetRoomMembers(r.Context(), room.ID)
-				var gamePtr *sqlcgen.Game
+				var gameState *GameState
 				if room.State == "game" {
-					g, err := q.GetGameByRoomID(r.Context(), room.ID)
+					g, err := q.GetCurrentGame(r.Context(), room.ID)
 					if err == nil {
-						gamePtr = &g
+						events, _ := q.GetGameEvents(r.Context(), g.ID)
+						gs := BuildGameState(g, events)
+						gameState = &gs
 					}
-					signals, _ := json.Marshal(map[string]int64{"timer": g.TimerRemaining})
-					sse.PatchSignals(signals)
 				}
-				sse.PatchElementTempl(RoomPage(room, gamePtr, members, userID))
+				sse.PatchElementTempl(RoomPage(room, gameState, members, userID))
 			case <-r.Context().Done():
 				fmt.Println("Left Room")
 				if err := q.LeaveRoom(context.Background(), sqlcgen.LeaveRoomParams{
@@ -501,13 +503,13 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		spyID := members[rand.Intn(len(members))].ID
 		location := crabspy.Locations[rand.Intn(len(crabspy.Locations))]
 
-		if err := q.UpsertGameForRoom(r.Context(), sqlcgen.UpsertGameForRoomParams{
-			RoomID:         room.ID,
-			SpyID:          spyID,
-			Location:       location.Title,
-			TimerRemaining: room.TimerDuration,
+		if _, err := q.CreateGame(r.Context(), sqlcgen.CreateGameParams{
+			RoomID:        room.ID,
+			SpyID:         spyID,
+			Location:      location.Title,
+			TimerDuration: room.TimerDuration,
 		}); err != nil {
-			slog.Error("Error UpsertGameForRoom()", "err", err)
+			slog.Error("Error CreateGame()", "err", err)
 		}
 
 		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
@@ -519,14 +521,9 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		bus.NotifyRoom(room.ID)
 	}
 }
-func togglePauseWithState(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+func togglePause(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
-		var signals GameSignals
-		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
-			slog.Error("Error decoding signals", "Error", err)
-			return
-		}
 		roomCode := chi.URLParam(r, "code")
 		q := sqlcgen.New(db)
 		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
@@ -534,16 +531,31 @@ func togglePauseWithState(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error GetRoomByCode()", "Error", err)
 			return
 		}
-		// I want the person who paused to only be able to pause once...
-		// Should I make another game table that has the state of players?
-		// table game_members
-		// has_paused,
-		if err := q.TogglePauseWithState(r.Context(), sqlcgen.TogglePauseWithStateParams{
-			RoomID:         room.ID,
-			TimerRemaining: int64(signals.Timer),
-			PausedID:       sql.NullInt64{Valid: true, Int64: userID},
+
+		game, err := q.GetCurrentGame(r.Context(), room.ID)
+		if err != nil {
+			slog.Error("Error GetCurrentGame()", "Error", err)
+			return
+		}
+
+		events, _ := q.GetGameEvents(r.Context(), game.ID)
+		state := BuildGameState(game, events)
+
+		eventType := "paused"
+		if state.Paused {
+			eventType = "unpaused"
+		}
+
+		if eventType == "paused" && state.HasPaused[userID] {
+			return
+		}
+
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: eventType,
 		}); err != nil {
-			slog.Error("Error TogglePauseWithState()", "Error", err)
+			slog.Error("Error InsertGameEvent()", "Error", err)
 			return
 		}
 
@@ -551,33 +563,88 @@ func togglePauseWithState(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	}
 }
 
-func setAccusedIfAllowed(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+func accuse(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
-
 		roomCode := chi.URLParam(r, "code")
-		accusedId := chi.URLParam(r, "id")
+		accusedIDStr := chi.URLParam(r, "id")
 		q := sqlcgen.New(db)
+
 		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
 		if err != nil {
 			slog.Error("Error GetRoomByCode()", "Error", err)
 			return
 		}
-		accused, err := strconv.ParseInt(accusedId, 10, 64)
+
+		accusedID, err := strconv.ParseInt(accusedIDStr, 10, 64)
 		if err != nil {
-			slog.Error("Error converting string to int in host form.", "Error", err)
-			return
-		}
-		if err = q.SetAccusedIfAllowed(r.Context(), sqlcgen.SetAccusedIfAllowedParams{
-			AccusedID: sql.NullInt64{Valid: true, Int64: accused},
-			RoomID:    room.ID,
-			PausedID:  sql.NullInt64{Valid: true, Int64: userID},
-			UserID:    accused,
-		}); err != nil {
-			slog.Error("Error SetAccusedIfAllowed()", "err", err)
+			slog.Error("Error parsing accused ID", "Error", err)
 			return
 		}
 
+		game, err := q.GetCurrentGame(r.Context(), room.ID)
+		if err != nil {
+			slog.Error("Error GetCurrentGame()", "Error", err)
+			return
+		}
+
+		events, _ := q.GetGameEvents(r.Context(), game.ID)
+		state := BuildGameState(game, events)
+
+		if state.HasAccused[userID] {
+			return
+		}
+
+		if !state.Paused || state.PausedID != userID {
+			slog.Error("Accuse not allowed", "paused", state.Paused, "pausedID", state.PausedID, "userID", userID)
+			return
+		}
+
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: "accused",
+			TargetID:  sql.NullInt64{Valid: true, Int64: accusedID},
+		}); err != nil {
+			slog.Error("Error InsertGameEvent()", "err", err)
+			return
+		}
+
+		bus.NotifyRoom(room.ID)
+	}
+}
+
+func finishGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(int64)
+		roomCode := chi.URLParam(r, "code")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		game, err := q.GetCurrentGame(r.Context(), room.ID)
+		if err != nil {
+			slog.Error("Error GetCurrentGame()", "Error", err)
+			return
+		}
+
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: "game_finished",
+		}); err != nil {
+			slog.Error("Error InsertGameEvent()", "err", err)
+			return
+		}
+		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+			ID: room.ID, State: "lobby",
+		}); err != nil {
+			slog.Error("Error UpdateRoomState()", "err", err)
+		}
 		bus.NotifyRoom(room.ID)
 	}
 }
