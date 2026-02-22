@@ -16,7 +16,16 @@ templ RoomPage(room sqlcgen.Room, game *GameState, members []sqlcgen.GetRoomMemb
 }
 
 templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
-	<div class="flex-col px-2 max-w-content-3 w-full mt-4">
+	<div
+		class="flex-col px-2 max-w-content-3 w-full mt-4"
+		data-init={ `
+			const target = document.getElementById('morphTarget');
+			if (target._timerInterval) {
+				clearInterval(target._timerInterval);
+				target._timerInterval = null;
+			}
+		` }
+	>
 		<div class="bg border-2 rounded-2 p-3 shadow">
 			<div class="flex flex-wrap justify-between uppercase mb-3">
 				<span class="text-2xl w-full font-bold color-primary">{ room.Name }</span>
@@ -104,15 +113,16 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 	<div
 		data-signals={ fmt.Sprintf("{timer: %d, paused: %t}", game.TimerRemaining(), game.Paused) }
 		data-init={ `
-			if (el._timerInterval) clearInterval(el._timerInterval);
+			const target = document.getElementById('morphTarget');
+			if (target._timerInterval) clearInterval(target._timerInterval);
 
-			el._timerInterval = setInterval(() => {
+			target._timerInterval = setInterval(() => {
 				if ($paused) return;
 
 				if ($timer <= 0) {
 					$timer = 0;
-					clearInterval(el._timerInterval);
-					el._timerInterval = null;
+					clearInterval(target._timerInterval);
+					target._timerInterval = null;
 					return;
 				}
 
@@ -136,7 +146,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 			>
 				<span data-text="toMMSS($timer)"></span>
 			</div>
-			if game.Paused {
+			if game.Paused && game.PausedID == playerID {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
 					class="text-3xl border-2 rounded-2"
@@ -145,7 +155,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 						<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"></path>
 					</svg>
 				</div>
-			} else if game.HasPaused[playerID] {
+			} else if !game.Paused && game.HasPaused[playerID] {
 				<div
 					data-tooltip="You already used your pause"
 					class="text-3xl border-2 rounded-2
@@ -155,7 +165,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 						<path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5m4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5"></path>
 					</svg>
 				</div>
-			} else {
+			} else if !game.Paused {
 				<div
 					data-on:click={ fmt.Sprintf("@post('/room/%s/pause')", room.Code) }
 					class="text-3xl border-2 rounded-2"
