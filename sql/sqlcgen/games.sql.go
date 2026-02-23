@@ -23,6 +23,9 @@ type CreateGameParams struct {
 	TimerDuration int64  `json:"timer_duration"`
 }
 
+// -------------------------
+// CREATE, UPDATE, DELETE
+// -------------------------
 func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, error) {
 	row := q.db.QueryRowContext(ctx, createGame,
 		arg.RoomID,

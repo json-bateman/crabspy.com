@@ -16,7 +16,7 @@ CREATE TABLE rooms (
     max_locations INTEGER NOT NULL DEFAULT 30,
     max_players INTEGER NOT NULL DEFAULT 8,
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-    state TEXT NOT NULL DEFAULT 'lobby' CHECK (state IN ('lobby', 'game')),
+    state TEXT NOT NULL DEFAULT 'lobby' CHECK (state IN ('lobby', 'game', 'reveal', 'finish')),
     timer_duration INTEGER NOT NULL DEFAULT 480
 );
 
@@ -47,7 +47,9 @@ CREATE TABLE game_events (
         'unpaused',
         'accused',
         'game_started',
-        'game_finished'
+        'game_finished',
+        'location_revealed',
+        'location_guessed'
     )),
     target_id INTEGER REFERENCES users(id),
     metadata TEXT,
@@ -56,4 +58,4 @@ CREATE TABLE game_events (
 
 CREATE INDEX idx_room_members_user ON room_members(user_id);
 CREATE INDEX idx_games_room ON games(room_id);
-CREATE INDEX idx_game_events_game ON game_events(game_id);
+CREATE INDEX idx_game_events_game_id ON game_events(game_id);

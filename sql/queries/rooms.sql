@@ -30,14 +30,21 @@ RETURNING *;
 -- name: DeleteRoom :exec
 DELETE FROM rooms WHERE id = ?;
 
+-- name: UpdateRoomHost :exec
+UPDATE rooms SET host_id = ? WHERE id = ?;
+
+-- name: UpdateRoomState :exec
+UPDATE rooms SET state = ? WHERE id = ?;
+
 -- name: JoinRoom :exec
 INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES (?, ?);
 
 -- name: LeaveRoom :exec
 DELETE FROM room_members WHERE room_id = ? AND user_id = ?;
 
--- name: UpdateRoomHost :exec
-UPDATE rooms SET host_id = ? WHERE id = ?;
+-- name: AddPointsToMember :exec
+UPDATE room_members SET points = points + ? WHERE room_id = ? AND user_id = ?;
 
--- name: UpdateRoomState :exec
-UPDATE rooms SET state = ? WHERE id = ?;
+-- name: AddPointsToAllExcept :exec
+UPDATE room_members SET points = points + ? WHERE room_id = ? AND user_id != ?;
+

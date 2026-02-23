@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"crabspy/sql/sqlcgen"
+	"encoding/json"
 	"time"
 )
 
@@ -16,8 +17,9 @@ type GameState struct {
 	PausedID      int64 // 0 = nobody
 	AccusedID     int64 // 0 = nobody
 	Events        []sqlcgen.GameEvent
-	HasPaused     map[int64]bool
-	HasAccused    map[int64]bool
+	HasPaused       map[int64]bool
+	HasAccused      map[int64]bool
+	GuessedLocation string
 }
 
 func BuildGameState(game sqlcgen.Game, events []sqlcgen.GameEvent) GameState {
@@ -47,6 +49,12 @@ func BuildGameState(game sqlcgen.Game, events []sqlcgen.GameEvent) GameState {
 			if e.TargetID.Valid && e.TargetID.Int64 != e.UserID {
 				state.AccusedID = e.TargetID.Int64
 				state.HasAccused[e.UserID] = true
+			}
+		case "location_guessed":
+			if e.Metadata.Valid {
+				var m map[string]string
+				json.Unmarshal([]byte(e.Metadata.String), &m)
+				state.GuessedLocation = m["location"]
 			}
 		}
 	}

@@ -1,13 +1,20 @@
 package web
 
-import "crabspy/sql/sqlcgen"
-import "fmt"
+import (
+	"crabspy"
+	"crabspy/sql/sqlcgen"
+	"fmt"
+)
 
 templ RoomPage(room sqlcgen.Room, game *GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	@Base(room.Name) {
 		<main id="morphTarget" class="items-center" data-init={ fmt.Sprintf("@get('/sse/room/%s')", room.Code) }>
 			if room.State == "game" && game != nil {
 				@Game(room, *game, members, playerID)
+			} else if room.State == "reveal" && game != nil {
+				@Reveal(room, *game, members, playerID)
+			} else if room.State == "finish" && game != nil {
+				@Finish(room, *game, members, playerID)
 			} else {
 				@Lobby(room, members, playerID)
 			}
@@ -178,11 +185,13 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 		if game.SpyID == playerID {
 			<div class="text-lg text-center w-full">You are the Spy!</div>
 			<div class="flex justify-center">
-				<button
-					style="inline-size: var(--size-px-12);"
-					data-on:click="document.getElementById('reveal-dialog').showModal()"
-					class="btn mb-4 mt-4"
-				>Reveal Location</button>
+				if game.TimerRemaining() > 0 {
+					<button
+						style="inline-size: var(--size-px-12);"
+						data-on:click="document.getElementById('reveal-dialog').showModal()"
+						class="btn btn-accent mb-4 mt-4"
+					>Reveal Location</button>
+				}
 			</div>
 		} else {
 			<div class="text-lg text-center w-full">{ game.Location }</div>
@@ -217,7 +226,34 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 		}
 	</div>
 	@Dialog("finish-game-dialog", "Are you sure?", FinishGameDialogBody("finish-game-dialog", room.Code))
-	@Dialog("reveal-dialog", "This will end the game, proceed?", FinishGameDialogBody("reveal-dialog", room.Code))
+	@Dialog("reveal-dialog", "This will end the game, proceed?", RevealLocationDialog("reveal-dialog", room.Code))
+}
+
+templ Reveal(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+	<div>
+		if playerID == game.SpyID {
+			for _, l := range crabspy.Locations {
+				<div
+					data-on:click={ fmt.Sprintf(`@post('/room/%s/location/%s') `, room.Code, l.Title) }
+				>{ l.Title }</div>
+			}
+		} else {
+			<div>The Crabspy is revealing the Location!</div>
+		}
+	</div>
+}
+
+templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+	<div>
+		<div>The Great Crabbining has occured!</div>
+		for _, m := range members {
+			@PlayerCard(Player{
+				Username:    m.Username,
+				DisplayName: m.DisplayName,
+				CrabAvatar:  m.CrabAvatar,
+			}, m.ID == room.HostID, false, false, false)
+		}
+	</div>
 }
 
 templ FinishGameDialogBody(id string, code string) {
@@ -226,7 +262,7 @@ templ FinishGameDialogBody(id string, code string) {
 			style="inline-size: var(--size-px-12);"
 			class="btn btn-primary"
 			data-on:click={ fmt.Sprintf(
-                    `@post('/room/%s/finish');
+                    `@post('/room/%s/reveal');
                     document.getElementById('%s').close();
                     `,code, id) }
 		>Yes Finish Game</button>

@@ -91,6 +91,8 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Post("/room/{code}/pause", togglePause(db, bus))
 		r.Post("/room/{code}/accuse/{id}", accuse(db, bus))
 		r.Post("/room/{code}/finish", finishGame(db, bus))
+		r.Post("/room/{code}/reveal", revealLocation(db, bus))
+		r.Post("/room/{code}/location/{location}", guessLocation(db, bus))
 
 		r.Get("/sse/room/{code}", roomSSE(db, bus))
 	})
@@ -441,7 +443,7 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 				room, _ := q.GetRoomById(r.Context(), room.ID)
 				members, _ := q.GetRoomMembers(r.Context(), room.ID)
 				var gameState *GameState
-				if room.State == "game" {
+				if room.State == "game" || room.State == "reveal" || room.State == "finish" {
 					g, err := q.GetCurrentGame(r.Context(), room.ID)
 					if err == nil {
 						events, _ := q.GetGameEvents(r.Context(), g.ID)
@@ -642,6 +644,94 @@ func finishGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		}
 		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
 			ID: room.ID, State: "lobby",
+		}); err != nil {
+			slog.Error("Error UpdateRoomState()", "err", err)
+		}
+		bus.NotifyRoom(room.ID)
+	}
+}
+func revealLocation(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(int64)
+		roomCode := chi.URLParam(r, "code")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		game, _, err := getGameState(r.Context(), q, room.ID)
+		if err != nil {
+			slog.Error("Error getGameState()", "Error", err)
+			return
+		}
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: "location_revealed",
+		}); err != nil {
+			slog.Error("Error InsertGameEvent()", "err", err)
+			return
+		}
+
+		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+			ID: room.ID, State: "reveal",
+		}); err != nil {
+			slog.Error("Error UpdateRoomState()", "err", err)
+		}
+		bus.NotifyRoom(room.ID)
+	}
+}
+
+func guessLocation(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(int64)
+		roomCode := chi.URLParam(r, "code")
+		location := chi.URLParam(r, "location")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		game, _, err := getGameState(r.Context(), q, room.ID)
+		if err != nil {
+			slog.Error("Error getGameState()", "Error", err)
+			return
+		}
+
+		//Spy wins! +4 points to the spy
+		if location == game.Location {
+			q.AddPointsToMember(r.Context(), sqlcgen.AddPointsToMemberParams{
+				Points: 4,
+				UserID: userID,
+				RoomID: room.ID,
+			})
+		} else {
+			// Everyone else wins
+			q.AddPointsToAllExcept(r.Context(), sqlcgen.AddPointsToAllExceptParams{
+				Points: 1,
+				UserID: userID,
+				RoomID: room.ID,
+			})
+		}
+
+		metadata, _ := json.Marshal(map[string]string{"location": location})
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: "location_guessed",
+			Metadata:  sql.NullString{Valid: true, String: string(metadata)},
+		}); err != nil {
+			slog.Error("Error InsertGameEvent()", "err", err)
+			return
+		}
+		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+			ID: room.ID, State: "finish",
 		}); err != nil {
 			slog.Error("Error UpdateRoomState()", "err", err)
 		}

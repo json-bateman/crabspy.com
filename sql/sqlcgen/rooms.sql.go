@@ -9,6 +9,36 @@ import (
 	"context"
 )
 
+const addPointsToAllExcept = `-- name: AddPointsToAllExcept :exec
+UPDATE room_members SET points = points + ? WHERE room_id = ? AND user_id != ?
+`
+
+type AddPointsToAllExceptParams struct {
+	Points int64 `json:"points"`
+	RoomID int64 `json:"room_id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) AddPointsToAllExcept(ctx context.Context, arg AddPointsToAllExceptParams) error {
+	_, err := q.db.ExecContext(ctx, addPointsToAllExcept, arg.Points, arg.RoomID, arg.UserID)
+	return err
+}
+
+const addPointsToMember = `-- name: AddPointsToMember :exec
+UPDATE room_members SET points = points + ? WHERE room_id = ? AND user_id = ?
+`
+
+type AddPointsToMemberParams struct {
+	Points int64 `json:"points"`
+	RoomID int64 `json:"room_id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) AddPointsToMember(ctx context.Context, arg AddPointsToMemberParams) error {
+	_, err := q.db.ExecContext(ctx, addPointsToMember, arg.Points, arg.RoomID, arg.UserID)
+	return err
+}
+
 const createRoom = `-- name: CreateRoom :one
 INSERT INTO rooms (name, host_id, max_players, max_locations, code, timer_duration)
 VALUES (?, ?, ?, ?, ?, ?)
