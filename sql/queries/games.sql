@@ -1,9 +1,6 @@
 -- name: GetCurrentGame :one
 SELECT * FROM games WHERE room_id = ? ORDER BY started_at DESC LIMIT 1;
 
--- name: GetGamesByRoomID :many
-SELECT * FROM games WHERE room_id = ? ORDER BY started_at DESC;
-
 -- name: GetGameEvents :many
 SELECT * FROM game_events WHERE game_id = ? ORDER BY created_at ASC;
 

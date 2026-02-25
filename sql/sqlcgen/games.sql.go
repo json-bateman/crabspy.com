@@ -98,40 +98,6 @@ func (q *Queries) GetGameEvents(ctx context.Context, gameID int64) ([]GameEvent,
 	return items, nil
 }
 
-const getGamesByRoomID = `-- name: GetGamesByRoomID :many
-SELECT id, room_id, spy_id, location, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC
-`
-
-func (q *Queries) GetGamesByRoomID(ctx context.Context, roomID int64) ([]Game, error) {
-	rows, err := q.db.QueryContext(ctx, getGamesByRoomID, roomID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Game{}
-	for rows.Next() {
-		var i Game
-		if err := rows.Scan(
-			&i.ID,
-			&i.RoomID,
-			&i.SpyID,
-			&i.Location,
-			&i.StartedAt,
-			&i.TimerDuration,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const insertGameEvent = `-- name: InsertGameEvent :exec
 INSERT INTO game_events (game_id, user_id, event_type, target_id, metadata)
 VALUES (?, ?, ?, ?, ?)

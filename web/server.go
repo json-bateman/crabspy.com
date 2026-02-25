@@ -90,9 +90,10 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Post("/room/{code}/start", startGame(db, bus))
 		r.Post("/room/{code}/pause", togglePause(db, bus))
 		r.Post("/room/{code}/accuse/{id}", accuse(db, bus))
-		r.Post("/room/{code}/finish", finishGame(db, bus))
 		r.Post("/room/{code}/reveal", revealLocation(db, bus))
 		r.Post("/room/{code}/location/{location}", guessLocation(db, bus))
+		r.Post("/room/{code}/timeup", timeup(db, bus))
+		r.Post("/room/{code}/lobby", lobbyState(db, bus))
 
 		r.Get("/sse/room/{code}", roomSSE(db, bus))
 	})
@@ -443,7 +444,7 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 				room, _ := q.GetRoomById(r.Context(), room.ID)
 				members, _ := q.GetRoomMembers(r.Context(), room.ID)
 				var gameState *GameState
-				if room.State == "game" || room.State == "reveal" || room.State == "finish" {
+				if room.State == "game" || room.State == "reveal" || room.State == "finish" || room.State == "timeup" {
 					g, err := q.GetCurrentGame(r.Context(), room.ID)
 					if err == nil {
 						events, _ := q.GetGameEvents(r.Context(), g.ID)
@@ -475,7 +476,9 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 							slog.Debug("Host transferred", "roomID", room.ID, "newHostID", newHost.ID)
 						}
 					} else {
-						// Maybe DELETE room if everyone's gone? Not sure what I wanna do about this yet
+						q.UpdateRoomState(context.Background(), sqlcgen.UpdateRoomStateParams{
+							ID: room.ID, State: "closed",
+						})
 					}
 				}
 
@@ -616,40 +619,6 @@ func accuse(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	}
 }
 
-func finishGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value(userIDKey).(int64)
-		roomCode := chi.URLParam(r, "code")
-		q := sqlcgen.New(db)
-
-		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
-		if err != nil {
-			slog.Error("Error GetRoomByCode()", "Error", err)
-			return
-		}
-
-		game, _, err := getGameState(r.Context(), q, room.ID)
-		if err != nil {
-			slog.Error("Error getGameState()", "Error", err)
-			return
-		}
-
-		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
-			GameID:    game.ID,
-			UserID:    userID,
-			EventType: "game_finished",
-		}); err != nil {
-			slog.Error("Error InsertGameEvent()", "err", err)
-			return
-		}
-		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
-			ID: room.ID, State: "lobby",
-		}); err != nil {
-			slog.Error("Error UpdateRoomState()", "err", err)
-		}
-		bus.NotifyRoom(room.ID)
-	}
-}
 func revealLocation(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
@@ -732,6 +701,59 @@ func guessLocation(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		}
 		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
 			ID: room.ID, State: "finish",
+		}); err != nil {
+			slog.Error("Error UpdateRoomState()", "err", err)
+		}
+		bus.NotifyRoom(room.ID)
+	}
+}
+
+func timeup(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomCode := chi.URLParam(r, "code")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		_, state, err := getGameState(r.Context(), q, room.ID)
+		if err != nil {
+			slog.Error("Error getGameState()", "Error", err)
+			return
+		}
+		if room.State != "game" {
+			return
+		}
+		if state.TimerRemaining() > 0 {
+			return
+		}
+
+		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+			ID: room.ID, State: "timeup",
+		}); err != nil {
+			slog.Error("Error UpdateRoomState()", "err", err)
+		}
+		bus.NotifyRoom(room.ID)
+
+	}
+}
+
+func lobbyState(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomCode := chi.URLParam(r, "code")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+			ID: room.ID, State: "lobby",
 		}); err != nil {
 			slog.Error("Error UpdateRoomState()", "err", err)
 		}

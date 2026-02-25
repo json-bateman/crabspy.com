@@ -81,52 +81,6 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 	return i, err
 }
 
-const deleteRoom = `-- name: DeleteRoom :exec
-DELETE FROM rooms WHERE id = ?
-`
-
-func (q *Queries) DeleteRoom(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteRoom, id)
-	return err
-}
-
-const getAllRooms = `-- name: GetAllRooms :many
-SELECT id, name, code, host_id, max_locations, max_players, created_at, state, timer_duration FROM rooms
-`
-
-func (q *Queries) GetAllRooms(ctx context.Context) ([]Room, error) {
-	rows, err := q.db.QueryContext(ctx, getAllRooms)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Room{}
-	for rows.Next() {
-		var i Room
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Code,
-			&i.HostID,
-			&i.MaxLocations,
-			&i.MaxPlayers,
-			&i.CreatedAt,
-			&i.State,
-			&i.TimerDuration,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getRoomByCode = `-- name: GetRoomByCode :one
 SELECT id, name, code, host_id, max_locations, max_players, created_at, state, timer_duration FROM rooms WHERE code = ?
 `
@@ -199,60 +153,6 @@ func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMe
 			&i.DisplayName,
 			&i.CrabAvatar,
 			&i.IsReady,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getRoomsAndMembers = `-- name: GetRoomsAndMembers :many
-SELECT rooms.id, rooms.name, rooms.code, rooms.host_id, rooms.max_locations, rooms.max_players, rooms.created_at, rooms.state, rooms.timer_duration, COUNT(rm.user_id) AS player_count
-FROM rooms
-LEFT JOIN room_members AS rm ON rm.room_id = rooms.id
-GROUP BY rooms.id
-`
-
-type GetRoomsAndMembersRow struct {
-	ID            int64  `json:"id"`
-	Name          string `json:"name"`
-	Code          string `json:"code"`
-	HostID        int64  `json:"host_id"`
-	MaxLocations  int64  `json:"max_locations"`
-	MaxPlayers    int64  `json:"max_players"`
-	CreatedAt     int64  `json:"created_at"`
-	State         string `json:"state"`
-	TimerDuration int64  `json:"timer_duration"`
-	PlayerCount   int64  `json:"player_count"`
-}
-
-func (q *Queries) GetRoomsAndMembers(ctx context.Context) ([]GetRoomsAndMembersRow, error) {
-	rows, err := q.db.QueryContext(ctx, getRoomsAndMembers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetRoomsAndMembersRow{}
-	for rows.Next() {
-		var i GetRoomsAndMembersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Code,
-			&i.HostID,
-			&i.MaxLocations,
-			&i.MaxPlayers,
-			&i.CreatedAt,
-			&i.State,
-			&i.TimerDuration,
-			&i.PlayerCount,
 		); err != nil {
 			return nil, err
 		}

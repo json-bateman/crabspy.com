@@ -13,6 +13,8 @@ templ RoomPage(room sqlcgen.Room, game *GameState, members []sqlcgen.GetRoomMemb
 				@Game(room, *game, members, playerID)
 			} else if room.State == "reveal" && game != nil {
 				@Reveal(room, *game, members, playerID)
+			} else if room.State == "timeup" && game != nil {
+				@Timeup(room, *game, members, playerID)
 			} else if room.State == "finish" && game != nil {
 				@Finish(room, *game, members, playerID)
 			} else {
@@ -119,7 +121,7 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div
 		data-signals={ fmt.Sprintf("{timer: %d, paused: %t}", game.TimerRemaining(), game.Paused) }
-		data-init={ `
+		data-init={ fmt.Sprintf(`
 			const target = document.getElementById('morphTarget');
 			if (target._timerInterval) clearInterval(target._timerInterval);
 
@@ -130,20 +132,21 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 					$timer = 0;
 					clearInterval(target._timerInterval);
 					target._timerInterval = null;
+					@post('/room/%s/timeup');
 					return;
 				}
 
 				$timer = $timer - 1;
 			}, 1000);
-		` }
+		`, room.Code) }
 	>
 		if room.HostID == playerID {
 			<div class="flex justify-center">
 				<button
 					style="inline-size: var(--size-px-12);"
-					data-on:click="document.getElementById('finish-game-dialog').showModal()"
+					data-on:click="document.getElementById('return-lobby-dialog').showModal()"
 					class="btn mb-4 mt-4"
-				>Finish Game</button>
+				>Back To Lobby</button>
 			</div>
 		}
 		<div class="flex gap-4 justify-center items-center mb-4">
@@ -225,7 +228,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 			</div>
 		}
 	</div>
-	@Dialog("finish-game-dialog", "Are you sure?", FinishGameDialogBody("finish-game-dialog", room.Code))
+	@Dialog("return-lobby-dialog", "Return to Lobby?", ReturnLobbyDialogBody("return-lobby-dialog", room.Code))
 	@Dialog("reveal-dialog", "This will end the game, proceed?", RevealLocationDialog("reveal-dialog", room.Code))
 }
 
@@ -243,6 +246,28 @@ templ Reveal(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 	</div>
 }
 
+templ Timeup(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+	<div class="flex-col gap-2 w-full">
+		<div>One last try to find the most Sus of Crabs</div>
+		<div class="flex relative justify-center flex-wrap gap-4">
+			for _, m := range members {
+				<div class="flex-col">
+					@PlayerCard(Player{
+						Username:    m.Username,
+						DisplayName: m.DisplayName,
+						CrabAvatar:  m.CrabAvatar,
+					}, m.ID == room.HostID, false, false, false)
+					if playerID != m.ID {
+						<div class="flex justify-between mt-2 gap-2">
+							<button class="btn btn-small">Spy!</button>
+						</div>
+					}
+				</div>
+			}
+		</div>
+	</div>
+}
+
 templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div>
 		<div>The Great Crabbining has occured!</div>
@@ -253,19 +278,27 @@ templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 				CrabAvatar:  m.CrabAvatar,
 			}, m.ID == room.HostID, false, false, false)
 		}
+		if room.HostID == playerID {
+			<div class="flex justify-center">
+				<button
+					data-on:click={ fmt.Sprintf(`@post('/room/%s/lobby');`, room.Code) }
+					class="btn mb-4 mt-4"
+				>Back To Lobby</button>
+			</div>
+		}
 	</div>
 }
 
-templ FinishGameDialogBody(id string, code string) {
+templ ReturnLobbyDialogBody(id string, code string) {
 	<div class="mt-4 w-full flex justify-center">
 		<button
 			style="inline-size: var(--size-px-12);"
 			class="btn btn-primary"
 			data-on:click={ fmt.Sprintf(
-                    `@post('/room/%s/reveal');
+                    `@post('/room/%s/lobby');
                     document.getElementById('%s').close();
                     `,code, id) }
-		>Yes Finish Game</button>
+		>Yes Return to Lobby</button>
 	</div>
 }
 
