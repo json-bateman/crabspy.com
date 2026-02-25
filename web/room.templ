@@ -298,7 +298,7 @@ templ ReturnLobbyDialogBody(id string, code string) {
                     `@post('/room/%s/lobby');
                     document.getElementById('%s').close();
                     `,code, id) }
-		>Yes Return to Lobby</button>
+		>Yes</button>
 	</div>
 }
 
@@ -311,6 +311,6 @@ templ RevealLocationDialog(id string, code string) {
                     `@post('/room/%s/reveal');
                     document.getElementById('%s').close();
                     `,code, id) }
-		>Yes Reveal Location</button>
+		>Yes Reveal</button>
 	</div>
 }
