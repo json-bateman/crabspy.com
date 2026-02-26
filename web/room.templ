@@ -269,23 +269,25 @@ templ Timeup(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 }
 
 templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
-	<div>
+	<div class="flex-col gap-2 w-full">
 		<div>The Great Crabbining has occured!</div>
-		for _, m := range members {
-			@PlayerCard(Player{
-				Username:    m.Username,
-				DisplayName: m.DisplayName,
-				CrabAvatar:  m.CrabAvatar,
-			}, m.ID == room.HostID, false, false, false)
-		}
-		if room.HostID == playerID {
-			<div class="flex justify-center">
-				<button
-					data-on:click={ fmt.Sprintf(`@post('/room/%s/lobby');`, room.Code) }
-					class="btn mb-4 mt-4"
-				>Back To Lobby</button>
-			</div>
-		}
+		<div class="flex relative justify-center flex-wrap gap-4">
+			for _, m := range members {
+				@PlayerCard(Player{
+					Username:    m.Username,
+					DisplayName: m.DisplayName,
+					CrabAvatar:  m.CrabAvatar,
+				}, m.ID == room.HostID, false, false, game.TimerRemaining() == 0 && m.ID == game.SpyID)
+			}
+			if room.HostID == playerID {
+				<div class="flex justify-center">
+					<button
+						data-on:click={ fmt.Sprintf(`@post('/room/%s/lobby');`, room.Code) }
+						class="btn mb-4 mt-4"
+					>Back To Lobby</button>
+				</div>
+			}
+		</div>
 	</div>
 }
 
