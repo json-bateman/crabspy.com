@@ -5,6 +5,7 @@
 #screen-clamp {
   inline-size: 100%;
   max-width: var(--size-lg);
+  min-height: 100vh;
 }
 
 #join-table {
@@ -85,11 +86,24 @@
   }
 }
 
+.input-home {
+  width: 64px;
+  background-color: hsl(var(--background) / 0.05);
+  backdrop-filter: blur(6px);
+}
+
+.input {
+  background-color: hsl(var(--background) / 0.85);
+  backdrop-filter: blur(6px);
+  border: var(--border-size-2) solid hsl(var(--primary) / 0.6);
+}
+
 /* Form Elements */
 .input {
-  background-color: hsl(var(--primary) / 0.05);
+  background-color: hsl(var(--background) / 0.85);
+  backdrop-filter: blur(6px);
   color: hsl(var(--text));
-  border: var(--border-size-2) solid hsl(var(--primary));
+  border: var(--border-size-2) solid hsl(var(--primary) / 0.6);
   inline-size: var(--size-13);
   padding-left: var(--size-1);
   padding-block: var(--size-1);
@@ -353,6 +367,26 @@
 
 [data-tooltip]:hover::after {
   opacity: 1;
+}
+
+.splash-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.splash-img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.splash-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.65);
 }
 
 .location-card {

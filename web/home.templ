@@ -8,64 +8,78 @@ import (
 
 templ Home(user sqlcgen.User) {
 	@Base("Crabspy") {
-		<div class="flex flex-wrap gap-4 justify-center text-center text-4xl text">
-			<span class="font-bold text-shadow-hard">Crabspy</span>
+		<div class="splash-wrapper">
+			<img class="splash-img" src={ StaticPath("images/splash-screen-mobile.jpg") }/>
 		</div>
-		<div class="w-full flex justify-center">
-			<span
-				id="userDropdown"
-				data-on:click="document.getElementById('userDialog').showModal()"
-				class="cursor-pointer"
-			>
-				@PlayerCard(Player{
-					Username:    user.Username,
-					DisplayName: user.DisplayName,
-					CrabAvatar:  user.CrabAvatar,
-				}, false, false, false, false)
-			</span>
-		</div>
-		<div class="flex w-full justify-center mt-4">
-			<div
-				style="max-inline-size: var(--size-14);"
-				class="flex-col gap-4 w-full items-center"
-			>
-				<a href="host" class="btn btn-primary shadow">Host Room</a>
-				<div class="flex-col">
-					<div class="flex gap-2">
-						<input
-							data-on:keydown={ `
-                            if (evt.key !== 'Enter' || !$code.trim().length) { 
-                                return; 
-                            };
-                            @post('/private');
-                        ` }
-							class="input shadow flex-1"
-							data-bind:code
-							type="text"
-							name="code"
-							placeholder="Room code..."
-							autocomplete="off"
-						/>
-						<button
-							class="btn btn-primary shadow flex-1"
-							data-on:click="if ($code.trim().length) @post('/private')"
-						>Join Room</button>
+		<div class="flex-col min-h-dvh justify-between">
+			<div class="h-24 m-4 flex justify-between items-center text-3xl text-center text">
+				<span class="font-bold text-shadow-hard">Crabspy</span>
+				<div
+					id="userDropdown"
+					data-on:click="document.getElementById('userDialog').showModal()"
+					class="cursor-pointer flex-col justify-center"
+				>
+					<img
+						class="pixelated"
+						src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", user.CrabAvatar)) }
+					/>
+					<span
+						style={ getUserColor(user.Username, "color") }
+						class="player-name text-outline"
+					>
+						{ user.DisplayName }
+					</span>
+				</div>
+			</div>
+			<div class="flex w-full justify-end mb-4">
+				<div
+					style="max-inline-size: var(--size-14);"
+					class="flex-col w-full items-end p-4"
+				>
+					<a href="host" class="text-outline text-xl color-text">Host Room</a>
+					<div data-signals="{showCode: false}">
+						<span
+							data-show="!$showCode"
+							data-on:click="$showCode = true"
+							class="text-xl color-text text-outline cursor-pointer"
+						>Join Room</span>
+						<div data-show="$showCode" class="flex items-center gap-2">
+							<input
+								data-on:keydown={ `
+									if (evt.key !== 'Enter' || !$code.trim().length) {
+										return;
+									};
+									@post('/private');
+								` }
+								data-on:load="$showCode && this.focus()"
+								class="input-home color-text shadow flex-1"
+								data-bind:code
+								type="text"
+								name="code"
+								placeholder="Code..."
+								autocomplete="off"
+							/>
+							<span
+								class="color-text text-outline cursor-pointer"
+								data-on:click="if ($code.trim().length) @post('/private')"
+							>Join</span>
+						</div>
 					</div>
 					<div class="flex justify-center">
 						@Error("")
 					</div>
+					<div
+						id="crabspy-rules"
+						data-on:click="document.getElementById('rulesDialog').showModal()"
+						class="text-outline text-xl color-text"
+					>
+						Rules	
+					</div>
 				</div>
-				<button
-					id="crabspy-rules"
-					data-on:click="document.getElementById('rulesDialog').showModal()"
-					class="btn btn-secondary shadow"
-				>
-					Rules	
-				</button>
 			</div>
 		</div>
 		@Dialog("userDialog", "Choose Crabatar", UserDialogBody("userDialog"))
-		@Dialog("rulesDialog", "Crabspy Rules", SpyfallRulesDialogBody())
+		@Dialog("rulesDialog", "Crabspy Rules", CrabspyRulesDialogBody())
 	}
 }
 
@@ -92,7 +106,7 @@ templ UserDialogBody(id string) {
 	</div>
 }
 
-templ SpyfallRulesDialogBody() {
+templ CrabspyRulesDialogBody() {
 	<div class="flex flex-col gap-2 text-left">
 		<div class="flex w-full justify-center">
 			<img

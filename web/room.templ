@@ -83,15 +83,15 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 			</div>
 			<div class="grid grid-9 gap-2">
 				<div class="info-card">
-					<div class="text-sm uppercase font-bold">Locations</div>
+					<div class="text-xs uppercase font-bold">Locations</div>
 					<div class="text-xl font-bold">{ fmt.Sprintf("%d", room.MaxLocations) }</div>
 				</div>
 				<div class="info-card">
-					<div class="text-sm uppercase font-bold">Players</div>
+					<div class="text-xs uppercase font-bold">Players</div>
 					<div class="text-xl font-bold">{ fmt.Sprintf("%d", room.MaxPlayers) }</div>
 				</div>
 				<div class="info-card">
-					<div class="text-sm uppercase font-bold">Timer</div>
+					<div class="text-xs uppercase font-bold">Timer</div>
 					<div class="text-xl font-bold">{ fmt.Sprintf("%d:00", room.TimerDuration / 60) }</div>
 				</div>
 			</div>
