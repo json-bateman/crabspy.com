@@ -9,15 +9,15 @@ import (
 templ Home(user sqlcgen.User) {
 	@Base("Crabspy") {
 		<div class="splash-wrapper">
-			<img class="splash-img" src={ StaticPath("images/splash-screen-mobile.jpg") }/>
+			<img class="splash-img splash-mobile" src={ StaticPath("images/splash-screen-mobile.jpg") }/>
+			<img class="splash-img splash-desktop" src={ StaticPath("images/splash-screen.jpg") }/>
 		</div>
 		<div class="flex-col min-h-dvh justify-between">
-			<div class="h-24 m-4 flex justify-between items-center text-3xl text-center text">
+			<div class="h-24 m-4 flex justify-between items-center text-outline text-4xl text-center text">
 				<span class="font-bold text-shadow-hard">Crabspy</span>
 				<div
-					id="userDropdown"
+					id="userbox"
 					data-on:click="document.getElementById('userDialog').showModal()"
-					class="cursor-pointer flex-col justify-center"
 				>
 					<img
 						class="pixelated"
@@ -31,7 +31,7 @@ templ Home(user sqlcgen.User) {
 					</span>
 				</div>
 			</div>
-			<div class="flex w-full justify-end mb-4">
+			<div class="action-container">
 				<div
 					style="max-inline-size: var(--size-14);"
 					class="flex-col w-full items-end p-4"
@@ -60,7 +60,7 @@ templ Home(user sqlcgen.User) {
 								autocomplete="off"
 							/>
 							<span
-								class="color-text text-outline cursor-pointer"
+								class="color-text text-outline text-xl cursor-pointer"
 								data-on:click="if ($code.trim().length) @post('/private')"
 							>Join</span>
 						</div>
@@ -69,9 +69,8 @@ templ Home(user sqlcgen.User) {
 						@Error("")
 					</div>
 					<div
-						id="crabspy-rules"
 						data-on:click="document.getElementById('rulesDialog').showModal()"
-						class="text-outline text-xl color-text"
+						class="text-outline text-xl color-text cursor-pointer"
 					>
 						Rules	
 					</div>

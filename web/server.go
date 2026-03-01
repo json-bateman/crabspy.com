@@ -90,10 +90,12 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 		r.Post("/room/{code}/start", startGame(db, bus))
 		r.Post("/room/{code}/pause", togglePause(db, bus))
 		r.Post("/room/{code}/accuse/{id}", accuse(db, bus))
+		r.Post("/room/{code}/vote/{id}/{vote}", vote(db, bus))
 		r.Post("/room/{code}/reveal", revealLocation(db, bus))
 		r.Post("/room/{code}/location/{location}", guessLocation(db, bus))
 		r.Post("/room/{code}/timeup", timeup(db, bus))
 		r.Post("/room/{code}/lobby", lobbyState(db, bus))
+		r.Post("/room/{code}/leave", leaveRoom(db, bus))
 
 		r.Get("/sse/room/{code}", roomSSE(db, bus))
 	})
@@ -331,7 +333,7 @@ func host(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		code := internal.GenerateRoomCode(4)
+		code := internal.GenerateRoomCode(5)
 		room, err := q.CreateRoom(r.Context(), sqlcgen.CreateRoomParams{
 			HostID:        user.ID,
 			Name:          signals.Name,
@@ -408,6 +410,11 @@ func roomPage(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			}
 		}
 
+		if room.State == "closed" {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+
 		members, _ := q.GetRoomMembers(r.Context(), room.ID)
 		RoomPage(room, gameState, members, userID).Render(r.Context(), w)
 
@@ -454,39 +461,73 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 				}
 				sse.PatchElementTempl(RoomPage(room, gameState, members, userID))
 			case <-r.Context().Done():
-				fmt.Println("Left Room")
-				if err := q.LeaveRoom(context.Background(), sqlcgen.LeaveRoomParams{
+				slog.Debug("User disconnected from room SSE", "roomID", room.ID, "userID", userID)
+				ctx := context.Background()
+				q := sqlcgen.New(db)
+				if err := q.LeaveRoom(ctx, sqlcgen.LeaveRoomParams{
 					RoomID: room.ID,
 					UserID: userID,
 				}); err != nil {
-					slog.Error("Error removing user from room", "err", err, "roomID", room.ID, "userID", userID)
+					slog.Error("Error LeaveRoom() on disconnect", "err", err)
+					return
 				}
-
-				room, _ := q.GetRoomById(context.Background(), room.ID)
 				if room.HostID == userID {
-					remaining, _ := q.GetRoomMembers(context.Background(), room.ID)
+					remaining, _ := q.GetRoomMembers(ctx, room.ID)
 					if len(remaining) > 0 {
-						newHost := remaining[0]
-						if err := q.UpdateRoomHost(context.Background(), sqlcgen.UpdateRoomHostParams{
-							HostID: newHost.ID,
+						q.UpdateRoomHost(ctx, sqlcgen.UpdateRoomHostParams{
+							HostID: remaining[0].ID,
 							ID:     room.ID,
-						}); err != nil {
-							slog.Error("Error transferring host", "err", err)
-						} else {
-							slog.Debug("Host transferred", "roomID", room.ID, "newHostID", newHost.ID)
-						}
+						})
 					} else {
-						q.UpdateRoomState(context.Background(), sqlcgen.UpdateRoomStateParams{
+						q.UpdateRoomState(ctx, sqlcgen.UpdateRoomStateParams{
 							ID: room.ID, State: "closed",
 						})
 					}
 				}
-
 				bus.NotifyRoom(room.ID)
-				slog.Debug("User left room", "roomID", room.ID, "userID", userID)
 				return
 			}
 		}
+	}
+}
+
+func leaveRoom(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(int64)
+		roomCode := chi.URLParam(r, "code")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		if err := q.LeaveRoom(r.Context(), sqlcgen.LeaveRoomParams{
+			RoomID: room.ID,
+			UserID: userID,
+		}); err != nil {
+			slog.Error("Error LeaveRoom()", "err", err)
+			return
+		}
+
+		if room.HostID == userID {
+			remaining, _ := q.GetRoomMembers(r.Context(), room.ID)
+			if len(remaining) > 0 {
+				q.UpdateRoomHost(r.Context(), sqlcgen.UpdateRoomHostParams{
+					HostID: remaining[0].ID,
+					ID:     room.ID,
+				})
+			} else {
+				q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+					ID: room.ID, State: "closed",
+				})
+			}
+		}
+
+		bus.NotifyRoom(room.ID)
+		sse := datastar.NewSSE(w, r)
+		sse.Redirect("/")
 	}
 }
 
@@ -605,14 +646,102 @@ func accuse(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
+		//Accuser automatically votes spy
+		metadata, _ := json.Marshal(map[string]string{"vote": "spy"})
 		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
 			GameID:    game.ID,
 			UserID:    userID,
 			EventType: "accused",
 			TargetID:  sql.NullInt64{Valid: true, Int64: accusedID},
+			Metadata:  sql.NullString{Valid: true, String: string(metadata)},
 		}); err != nil {
 			slog.Error("Error InsertGameEvent()", "err", err)
 			return
+		}
+
+		bus.NotifyRoom(room.ID)
+	}
+}
+
+func vote(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(int64)
+		roomCode := chi.URLParam(r, "code")
+		accusedIDStr := chi.URLParam(r, "id")
+		vote := chi.URLParam(r, "vote")
+		q := sqlcgen.New(db)
+
+		room, err := q.GetRoomByCode(r.Context(), strings.ToUpper(roomCode))
+		if err != nil {
+			slog.Error("Error GetRoomByCode()", "Error", err)
+			return
+		}
+
+		game, _, err := getGameState(r.Context(), q, room.ID)
+		if err != nil {
+			slog.Error("Error getGameState()", "Error", err)
+			return
+		}
+		members, _ := q.GetRoomMembers(r.Context(), room.ID)
+
+		accusedID, err := strconv.ParseInt(accusedIDStr, 10, 64)
+		if err != nil {
+			slog.Error("Error parsing accused ID", "Error", err)
+			return
+		}
+
+		metadata, _ := json.Marshal(map[string]string{"vote": vote})
+		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+			GameID:    game.ID,
+			UserID:    userID,
+			EventType: "voted",
+			Metadata:  sql.NullString{Valid: true, String: string(metadata)},
+			TargetID:  sql.NullInt64{Valid: true, Int64: accusedID},
+		}); err != nil {
+			slog.Error("Error InsertGameEvent()", "err", err)
+			return
+		}
+		// Rebuild gameState after vote
+		_, state, err := getGameState(r.Context(), q, room.ID)
+		if err != nil {
+			slog.Error("Error getGameState()", "Error", err)
+			return
+		}
+
+		switch state.ResolveVote(len(members)) {
+		case VoteSpyCaught:
+			q.AddPointsToAllExcept(r.Context(), sqlcgen.AddPointsToAllExceptParams{
+				Points: 1,
+				UserID: game.SpyID,
+				RoomID: room.ID,
+			})
+			if state.PausedID != 0 {
+				q.AddPointsToMember(r.Context(), sqlcgen.AddPointsToMemberParams{
+					Points: 1,
+					UserID: state.PausedID,
+					RoomID: room.ID,
+				})
+			}
+			q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+				ID: room.ID, State: "finish",
+			})
+		case VoteWrongPlayer, VoteTimeupSpyWins:
+			q.AddPointsToMember(r.Context(), sqlcgen.AddPointsToMemberParams{
+				Points: 4,
+				UserID: state.SpyID,
+				RoomID: room.ID,
+			})
+			q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
+				ID: room.ID, State: "finish",
+			})
+		case VoteNoConsensus:
+			q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
+				GameID:    game.ID,
+				UserID:    0,
+				EventType: "unpaused",
+			})
+		case VoteIncomplete:
+			// Fall through
 		}
 
 		bus.NotifyRoom(room.ID)

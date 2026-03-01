@@ -124,18 +124,24 @@ func (q *Queries) GetRoomById(ctx context.Context, id int64) (Room, error) {
 }
 
 const getRoomMembers = `-- name: GetRoomMembers :many
-SELECT users.id, users.username, users.display_name, users.crab_avatar, rm.is_ready
+SELECT room_id, user_id, joined_at, is_ready, points, id, username, password_hash, display_name, created_at, crab_avatar
 FROM room_members rm
 JOIN users ON users.id = rm.user_id
 WHERE rm.room_id = ?
 `
 
 type GetRoomMembersRow struct {
-	ID          int64  `json:"id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	CrabAvatar  string `json:"crab_avatar"`
-	IsReady     int64  `json:"is_ready"`
+	RoomID       int64  `json:"room_id"`
+	UserID       int64  `json:"user_id"`
+	JoinedAt     int64  `json:"joined_at"`
+	IsReady      int64  `json:"is_ready"`
+	Points       int64  `json:"points"`
+	ID           int64  `json:"id"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"password_hash"`
+	DisplayName  string `json:"display_name"`
+	CreatedAt    int64  `json:"created_at"`
+	CrabAvatar   string `json:"crab_avatar"`
 }
 
 func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMembersRow, error) {
@@ -148,11 +154,17 @@ func (q *Queries) GetRoomMembers(ctx context.Context, roomID int64) ([]GetRoomMe
 	for rows.Next() {
 		var i GetRoomMembersRow
 		if err := rows.Scan(
+			&i.RoomID,
+			&i.UserID,
+			&i.JoinedAt,
+			&i.IsReady,
+			&i.Points,
 			&i.ID,
 			&i.Username,
+			&i.PasswordHash,
 			&i.DisplayName,
+			&i.CreatedAt,
 			&i.CrabAvatar,
-			&i.IsReady,
 		); err != nil {
 			return nil, err
 		}

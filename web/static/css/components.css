@@ -16,6 +16,38 @@
   color: hsl(var(--error));
 }
 
+#userbox {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  align-items: center;
+}
+
+#userbox img {
+  inline-size: 64px;
+  block-size: 64px;
+}
+
+#userbox .player-name {
+  font-size: var(--font-size-2);
+}
+
+.scorebox {
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  & img {
+    height: 60%;
+    object-fit: contain;
+  }
+
+  & span {
+    text-align: center;
+  }
+}
+
 /* ~~~~~~~~~~~~~~~~~~
    Component Classes
 ~~~~~~~~~~~~~~~~~~ */
@@ -382,12 +414,24 @@
   object-fit: cover;
 }
 
+.splash-desktop {
+  display: none;
+}
+
 .splash-wrapper::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: hsl(0 0% 0% / 0.65);
+  background: hsl(0 0% 0% / 0.60);
 }
+
+.action-container {
+  display: flex;
+  inline-size: 100%;
+  justify-content: end;
+  margin-bottom: var(--size-4);
+}
+
 
 .location-card {
   inline-size: 400px;
@@ -395,5 +439,32 @@
 
   &.small {
     inline-size: 150px;
+  }
+}
+
+
+/* ~~~~~~~~~~~~
+Media Queries
+~~~~~~~~~~~~ */
+@media (min-width: 768px) {
+  #userbox img {
+    inline-size: 96px;
+    block-size: 96px;
+  }
+
+  #userbox .player-name {
+    font-size: var(--font-size-4);
+  }
+
+  .splash-mobile {
+    display: none;
+  }
+
+  .splash-desktop {
+    display: block;
+  }
+
+  .action-container {
+    justify-content: start;
   }
 }

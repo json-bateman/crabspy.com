@@ -53,6 +53,7 @@ CREATE TABLE game_events (
         'paused',
         'unpaused',
         'accused',
+        'voted',
         'game_started',
         'game_finished',
         'location_revealed',
