@@ -109,14 +109,22 @@ templ SpyfallRulesDialogBody() {
 		<div class="text-sm">
 			Each player receives a secret card. Most players see the location and their role. One player receives the Spy card and does not know the location.
 		</div>
+		<div class="flex-col gap-2">
+			<span class="text-xs color-accent">This is what the spy sees</span>
+			<img class="location-card small" src={ StaticPath("images/location-cards/Crabspy-Card.png") }/>
+		</div>
+		<div class="flex-col gap-2">
+			<span class="text-xs color-accent">This is what the other players see</span>
+			<img class="location-card small" src={ StaticPath("images/location-cards/Polar-Station.png") }/>
+		</div>
 		<div class="text-lg font-bold mt-3">Question Phase</div>
 		<div class="text-sm">
-			The starting player asks another player a question about the location. The answerer then asks a different player. Players cannot ask the person who just asked them. Questions should help identify the Spy without giving away the location.
+			The starting player (host) asks another player a question about the location. The answerer then asks a different player. Players cannot ask the person who just asked them. Questions should help identify the Spy without giving away the location.
 		</div>
 		<div class="text-lg font-bold mt-3">Ending the Round</div>
 		<div class="text-sm font-bold">Accuse the Spy</div>
 		<div class="text-sm">
-			A player may stop the round and accuse someone. All other players vote. If everyone agrees, the accused reveals their card.
+			A player may stop the round and accuse someone. All other players vote. If everyone agrees, the game is over.
 		</div>
 		<div class="text-sm font-bold mt-2">Spy Guesses Location</div>
 		<div class="text-sm">

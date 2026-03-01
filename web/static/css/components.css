@@ -354,3 +354,12 @@
 [data-tooltip]:hover::after {
   opacity: 1;
 }
+
+.location-card {
+  inline-size: 400px;
+  border: var(--border-size-3) groove hsl(var(--primary));
+
+  &.small {
+    inline-size: 150px;
+  }
+}
