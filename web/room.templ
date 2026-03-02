@@ -14,8 +14,6 @@ templ RoomPage(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembe
 					@Game(room, game, members, playerID)
 				case "reveal":
 					@Reveal(room, game, members, playerID)
-				case "timeup":
-					@Timeup(room, game, members, playerID)
 				case "finish":
 					@Finish(room, game, members, playerID)
 				default:
@@ -110,7 +108,15 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 		</div>
 		if playerID == room.HostID {
 			<div class="flex w-full justify-center mt-3">
-				<button data-on:click={ fmt.Sprintf("@post('/room/%s/start')", room.Code) } class="btn btn-primary">Start Game</button>
+				<button
+					data-on:click={ fmt.Sprintf("@post('/room/%s/start')", room.Code) }
+					class="btn btn-primary"
+					if len(members) < 3 {
+						disabled
+					}
+				>
+					Start Game
+				</button>
 			</div>
 		}
 		<div id="room-members" class="p-2">
@@ -128,7 +134,7 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 						<span>
 							@HistorySVG()
 						</span>
-						<span class="text-xs">history</span>
+						<span class="text-xs">Last Game</span>
 					</div>
 					<div
 						data-on:click="document.getElementById('scoreDialog').showModal()"
@@ -152,7 +158,7 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 			</div>
 		</div>
 	</div>
-	@Dialog("historyDialog", "History", HistoryDialog(game, members))
+	@Dialog("historyDialog", "Last Game", HistoryDialog(game))
 	@Dialog("scoreDialog", "Score", ScoreDialog(members))
 }
 
@@ -236,11 +242,14 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 				}
 			</div>
 		} else {
-			<div class="text-lg text-center w-full">{ game.Location.Title }</div>
-			<img class="location-card" src={ StaticPath("images/location-cards/%s.png", game.Location.Title) }/>
+			<div class="text-xl text-center w-full">{ game.Location.Title }</div>
+			<div class="flex justify-center w-full">
+				<img class="location-card" src={ StaticPath("images/location-cards/%s.png", game.Location.Title) }/>
+			</div>
+			<div class="text-xl text-center w-full">{ game.RoleAssignments[playerID] }</div>
 		}
 		if game.Paused || game.TimerRemaining() == 0 {
-			<div class="flex-col gap-2">
+			<div class="flex-col text-center items-center gap-2">
 				if playerID == game.PausedID {
 					<div>Click on the Crabatar you think is the spy</div>
 				} else if game.TimerRemaining() == 0 {
@@ -256,7 +265,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 								DisplayName: m.DisplayName,
 								CrabAvatar:  m.CrabAvatar,
 							}, m.ID == room.HostID, m.ID == game.PausedID, m.ID == game.AccusedID, game.TimerRemaining() == 0 && m.ID == game.SpyID)
-							if game.PausedID != m.ID && game.AccusedID == 0 {
+							if game.PausedID != m.ID && game.AccusedID == 0 && playerID == game.PausedID {
 								<button
 									data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }
 									class="btn btn-small mt-2"
@@ -307,41 +316,8 @@ templ Reveal(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 	</div>
 }
 
-templ Timeup(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
-	<div class="flex-col items-center gap-2 w-full mt-4">
-		<div>One last try to find the most Sus of Crabs</div>
-		if room.HostID == playerID {
-			<div class="flex justify-center">
-				<button
-					data-on:click={ fmt.Sprintf(`@post('/room/%s/lobby');`, room.Code) }
-					class="btn mb-4 mt-4"
-				>Back To Lobby</button>
-			</div>
-		}
-		<div class="flex relative justify-center flex-wrap gap-4">
-			for _, m := range members {
-				<div class="flex-col">
-					@PlayerCard(Player{
-						Username:    m.Username,
-						DisplayName: m.DisplayName,
-						CrabAvatar:  m.CrabAvatar,
-					}, m.ID == room.HostID, false, false, false)
-					if playerID != m.ID {
-						<div
-							data-on:click={ fmt.Sprintf(`@post('/room/%s/vote/%d/spy')`, room.Code, m.ID) }
-							class="flex justify-between mt-2 gap-2"
-						>
-							<button class="btn btn-small">Spy!</button>
-						</div>
-					}
-				</div>
-			}
-		</div>
-	</div>
-}
-
 templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
-	<div class="flex-col gap-2 items-center flex-wrap w-full mt-4">
+	<div class="flex-col gap-2 items-center flex-wrap w-full mt-4 text-center">
 		<div>The Great Crabbining has occured!</div>
 		if room.HostID == playerID {
 			<div class="flex justify-center">
@@ -361,9 +337,13 @@ templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 			}
 		</div>
 		if game.IsUnanimousSpy(len(members)) && game.AccusedID == game.SpyID {
-			<div class="color-accent text-xl">Non Spies Win!</div>
+			<div class="color-accent text-lg">Non Spies Win!</div>
+		} else if game.GuessedLocation != "" && game.GuessedLocation == game.Location.Title {
+			<div class="color-primary text-lg">Spy Wins! Guessed { game.GuessedLocation }</div>
+		} else if game.GuessedLocation != "" {
+			<div class="color-accent text-lg">Non Spies Win! Spy guessed { game.GuessedLocation }</div>
 		} else {
-			<div class="color-primary text-xl">Spy Wins!</div>
+			<div class="color-primary text-lg">Spy Wins!</div>
 		}
 	</div>
 }
@@ -394,12 +374,12 @@ templ RevealLocationDialog(id string, code string) {
 	</div>
 }
 
-templ HistoryDialog(game GameState, members []sqlcgen.GetRoomMembersRow) {
-	if len(game.Events) == 0 {
+templ HistoryDialog(game GameState) {
+	if len(game.EventsWithUsers) == 0 {
 		<div class="text-center color-text">No games played yet</div>
 	} else {
 		<div class="flex-col gap-2">
-			for _, e := range game.Events {
+			for _, e := range game.EventsWithUsers {
 				<div class="flex items-center gap-4 border-b">
 					if e.UserID != 0 {
 						<div
@@ -409,17 +389,17 @@ templ HistoryDialog(game GameState, members []sqlcgen.GetRoomMembersRow) {
 							<img
 								style="inline-size: 32px; block-size: 32px;"
 								class="pixelated"
-								src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", MemberMap(members)[e.UserID].CrabAvatar)) }
+								src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", e.UserCrabAvatar.String)) }
 							/>
 							<span
-								style={ getUserColor(MemberMap(members)[e.UserID].DisplayName, "color") }
+								style={ getUserColor(e.UserDisplayName.String, "color") }
 								class="player-name text-outline text-xs"
 							>
-								{ MemberMap(members)[e.UserID].DisplayName }
+								{ e.UserDisplayName.String }
 							</span>
 						</div>
 					}
-					<span class="text-xs">{ FormatEvent(e, MemberMap(members)) }</span>
+					<span class="text-xs">{ FormatEventRich(e) }</span>
 				</div>
 			}
 		</div>
@@ -457,10 +437,18 @@ templ ScoreDialog(members []sqlcgen.GetRoomMembersRow) {
 	</table>
 }
 
-func FormatEvent(e sqlcgen.GameEvent, memberMap map[int64]sqlcgen.GetRoomMembersRow) string {
+func MemberMap(members []sqlcgen.GetRoomMembersRow) map[int64]sqlcgen.GetRoomMembersRow {
+	m := make(map[int64]sqlcgen.GetRoomMembersRow, len(members))
+	for _, member := range members {
+		m[member.ID] = member
+	}
+	return m
+}
+
+func FormatEventRich(e sqlcgen.GetGameEventsWithUsersRow) string {
 	targetName := ""
-	if e.TargetID.Valid {
-		targetName = memberMap[e.TargetID.Int64].DisplayName
+	if e.TargetDisplayName.Valid {
+		targetName = e.TargetDisplayName.String
 	}
 
 	switch e.EventType {
@@ -496,12 +484,4 @@ func FormatEvent(e sqlcgen.GameEvent, memberMap map[int64]sqlcgen.GetRoomMembers
 	default:
 		return e.EventType
 	}
-}
-
-func MemberMap(members []sqlcgen.GetRoomMembersRow) map[int64]sqlcgen.GetRoomMembersRow {
-	m := make(map[int64]sqlcgen.GetRoomMembersRow, len(members))
-	for _, member := range members {
-		m[member.ID] = member
-	}
-	return m
 }

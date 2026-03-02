@@ -447,6 +447,8 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 				if g, err := q.GetCurrentGame(r.Context(), room.ID); err == nil {
 					events, _ := q.GetGameEvents(r.Context(), g.ID)
 					gs = BuildGameState(g, events)
+					eventsWithUsers, _ := q.GetGameEventsWithUsers(r.Context(), g.ID)
+					gs.EventsWithUsers = eventsWithUsers
 				}
 				sse.PatchElementTempl(RoomPage(room, gs, members, userID))
 			case <-r.Context().Done():
@@ -553,12 +555,30 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 
 		pool, _ := json.Marshal(titles)
 
+		// Assign roles to non-spy players
+		roles := make([]string, len(location.Roles))
+		copy(roles, location.Roles)
+		rand.Shuffle(len(roles), func(i, j int) { roles[i], roles[j] = roles[j], roles[i] })
+		roleMap := make(map[string]string)
+		ri := 0
+		for _, m := range members {
+			if m.ID == spyID {
+				continue
+			}
+			if ri < len(roles) {
+				roleMap[fmt.Sprintf("%d", m.ID)] = roles[ri]
+				ri++
+			}
+		}
+		roleJSON, _ := json.Marshal(roleMap)
+
 		game, err := q.CreateGame(r.Context(), sqlcgen.CreateGameParams{
-			RoomID:        room.ID,
-			SpyID:         spyID,
-			Location:      location.Title,
-			LocationPool:  string(pool),
-			TimerDuration: room.TimerDuration,
+			RoomID:          room.ID,
+			SpyID:           spyID,
+			Location:        location.Title,
+			LocationPool:    string(pool),
+			RoleAssignments: string(roleJSON),
+			TimerDuration:   room.TimerDuration,
 		})
 		if err != nil {
 			slog.Error("Error CreateGame()", "err", err)
@@ -730,7 +750,7 @@ func vote(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
 				ID: room.ID, State: "finish",
 			})
-		case VoteWrongPlayer, VoteTimeupSpyWins:
+		case VoteWrongPlayer:
 			q.AddPointsToMember(r.Context(), sqlcgen.AddPointsToMemberParams{
 				Points: 4,
 				UserID: state.SpyID,
@@ -865,11 +885,26 @@ func timeup(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		if err := q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
-			ID: room.ID, State: "timeup",
-		}); err != nil {
-			slog.Error("Error UpdateRoomState()", "err", err)
+		// Atomic: only one request transitions from game -> finish
+		res, err := q.UpdateRoomStateIf(r.Context(), sqlcgen.UpdateRoomStateIfParams{
+			State:   "finish",
+			ID:      room.ID,
+			State_2: "game",
+		})
+		if err != nil {
+			slog.Error("Error UpdateRoomStateIf()", "err", err)
+			return
 		}
+		rows, _ := res.RowsAffected()
+		if rows == 0 {
+			return // another request already transitioned
+		}
+
+		q.AddPointsToMember(r.Context(), sqlcgen.AddPointsToMemberParams{
+			Points: 4,
+			UserID: state.SpyID,
+			RoomID: room.ID,
+		})
 		bus.NotifyRoom(room.ID)
 
 	}

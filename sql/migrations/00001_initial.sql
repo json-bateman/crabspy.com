@@ -42,6 +42,7 @@ CREATE TABLE games (
     spy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     location TEXT NOT NULL,
     location_pool TEXT NOT NULL DEFAULT '[]',
+    role_assignments TEXT NOT NULL DEFAULT '{}',
     started_at INTEGER NOT NULL DEFAULT (unixepoch()),
     timer_duration INTEGER NOT NULL DEFAULT 480
 );

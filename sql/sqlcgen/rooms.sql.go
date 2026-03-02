@@ -7,6 +7,7 @@ package sqlcgen
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addPointsToAllExcept = `-- name: AddPointsToAllExcept :exec
@@ -233,4 +234,18 @@ type UpdateRoomStateParams struct {
 func (q *Queries) UpdateRoomState(ctx context.Context, arg UpdateRoomStateParams) error {
 	_, err := q.db.ExecContext(ctx, updateRoomState, arg.State, arg.ID)
 	return err
+}
+
+const updateRoomStateIf = `-- name: UpdateRoomStateIf :execresult
+UPDATE rooms SET state = ? WHERE id = ? AND state = ?
+`
+
+type UpdateRoomStateIfParams struct {
+	State   string `json:"state"`
+	ID      int64  `json:"id"`
+	State_2 string `json:"state_2"`
+}
+
+func (q *Queries) UpdateRoomStateIf(ctx context.Context, arg UpdateRoomStateIfParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateRoomStateIf, arg.State, arg.ID, arg.State_2)
 }

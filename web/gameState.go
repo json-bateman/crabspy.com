@@ -5,17 +5,17 @@ import (
 	"crabspy"
 	"crabspy/sql/sqlcgen"
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
 type VoteOutcome int
 
 const (
-	VoteIncomplete    VoteOutcome = iota // not everyone voted yet
-	VoteSpyCaught                        // unanimous + correct
-	VoteWrongPlayer                      // unanimous + wrong person
-	VoteNoConsensus                      // everyone voted, not unanimous mid-game
-	VoteTimeupSpyWins                    // everyone voted, not unanimous timer expired
+	VoteIncomplete  VoteOutcome = iota // not everyone voted yet
+	VoteSpyCaught                      // unanimous + correct
+	VoteWrongPlayer                    // unanimous + wrong person
+	VoteNoConsensus                    // everyone voted, not unanimous mid-game
 )
 
 type GameState struct {
@@ -29,9 +29,11 @@ type GameState struct {
 	PausedID        int64 // 0 = nobody
 	AccusedID       int64 // 0 = nobody
 	Events          []sqlcgen.GameEvent
+	EventsWithUsers []sqlcgen.GetGameEventsWithUsersRow
 	HasPaused       map[int64]bool
 	HasAccused      map[int64]bool
 	GuessedLocation string
+	RoleAssignments map[int64]string
 	Votes           map[int64]string
 }
 
@@ -44,14 +46,25 @@ func BuildGameState(game sqlcgen.Game, events []sqlcgen.GameEvent) GameState {
 	}
 	var lp []string
 	json.Unmarshal([]byte(game.LocationPool), &lp)
+
+	// Parse role assignments: stored as {"userID": "role"}
+	roleAssignments := make(map[int64]string)
+	var rawRoles map[string]string
+	json.Unmarshal([]byte(game.RoleAssignments), &rawRoles)
+	for k, v := range rawRoles {
+		var id int64
+		fmt.Sscanf(k, "%d", &id)
+		roleAssignments[id] = v
+	}
 	state := GameState{
-		RoomID:        game.RoomID,
-		SpyID:         game.SpyID,
-		Location:      location,
-		StartedAt:     game.StartedAt,
-		TimerDuration: game.TimerDuration,
-		LocationPool:  lp,
-		Events:        events,
+		RoomID:          game.RoomID,
+		SpyID:           game.SpyID,
+		Location:        location,
+		StartedAt:       game.StartedAt,
+		TimerDuration:   game.TimerDuration,
+		LocationPool:    lp,
+		RoleAssignments: roleAssignments,
+		Events:          events,
 	}
 
 	state.HasPaused = make(map[int64]bool)
@@ -155,9 +168,6 @@ func (g *GameState) ResolveVote(memberCount int) VoteOutcome {
 			return VoteSpyCaught
 		}
 		return VoteWrongPlayer
-	}
-	if g.TimerRemaining() == 0 {
-		return VoteTimeupSpyWins
 	}
 	return VoteNoConsensus
 }

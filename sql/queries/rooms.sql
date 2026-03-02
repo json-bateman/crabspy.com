@@ -24,6 +24,9 @@ UPDATE rooms SET host_id = ? WHERE id = ?;
 -- name: UpdateRoomState :exec
 UPDATE rooms SET state = ? WHERE id = ?;
 
+-- name: UpdateRoomStateIf :execresult
+UPDATE rooms SET state = ? WHERE id = ? AND state = ?;
+
 -- name: JoinRoom :exec
 INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES (?, ?);
 

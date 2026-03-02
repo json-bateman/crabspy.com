@@ -11,17 +11,18 @@ import (
 )
 
 const createGame = `-- name: CreateGame :one
-INSERT INTO games (room_id, spy_id, location, location_pool, timer_duration)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, room_id, spy_id, location, location_pool, started_at, timer_duration
+INSERT INTO games (room_id, spy_id, location, location_pool, role_assignments, timer_duration)
+VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, room_id, spy_id, location, location_pool, role_assignments, started_at, timer_duration
 `
 
 type CreateGameParams struct {
-	RoomID        int64  `json:"room_id"`
-	SpyID         int64  `json:"spy_id"`
-	Location      string `json:"location"`
-	LocationPool  string `json:"location_pool"`
-	TimerDuration int64  `json:"timer_duration"`
+	RoomID          int64  `json:"room_id"`
+	SpyID           int64  `json:"spy_id"`
+	Location        string `json:"location"`
+	LocationPool    string `json:"location_pool"`
+	RoleAssignments string `json:"role_assignments"`
+	TimerDuration   int64  `json:"timer_duration"`
 }
 
 // -------------------------
@@ -33,6 +34,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		arg.SpyID,
 		arg.Location,
 		arg.LocationPool,
+		arg.RoleAssignments,
 		arg.TimerDuration,
 	)
 	var i Game
@@ -42,6 +44,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		&i.SpyID,
 		&i.Location,
 		&i.LocationPool,
+		&i.RoleAssignments,
 		&i.StartedAt,
 		&i.TimerDuration,
 	)
@@ -49,7 +52,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 }
 
 const getCurrentGame = `-- name: GetCurrentGame :one
-SELECT id, room_id, spy_id, location, location_pool, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC LIMIT 1
+SELECT id, room_id, spy_id, location, location_pool, role_assignments, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC LIMIT 1
 `
 
 func (q *Queries) GetCurrentGame(ctx context.Context, roomID int64) (Game, error) {
@@ -61,6 +64,7 @@ func (q *Queries) GetCurrentGame(ctx context.Context, roomID int64) (Game, error
 		&i.SpyID,
 		&i.Location,
 		&i.LocationPool,
+		&i.RoleAssignments,
 		&i.StartedAt,
 		&i.TimerDuration,
 	)
@@ -88,6 +92,72 @@ func (q *Queries) GetGameEvents(ctx context.Context, gameID int64) ([]GameEvent,
 			&i.TargetID,
 			&i.Metadata,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGameEventsWithUsers = `-- name: GetGameEventsWithUsers :many
+SELECT
+    ge.id, ge.game_id, ge.user_id, ge.event_type, ge.target_id, ge.metadata, ge.created_at,
+    u.username AS user_username,
+    u.display_name AS user_display_name,
+    u.crab_avatar AS user_crab_avatar,
+    tu.username AS target_username,
+    tu.display_name AS target_display_name
+FROM game_events ge
+LEFT JOIN users u ON u.id = ge.user_id
+LEFT JOIN users tu ON tu.id = ge.target_id
+WHERE ge.game_id = ?
+ORDER BY ge.created_at ASC
+`
+
+type GetGameEventsWithUsersRow struct {
+	ID                int64          `json:"id"`
+	GameID            int64          `json:"game_id"`
+	UserID            int64          `json:"user_id"`
+	EventType         string         `json:"event_type"`
+	TargetID          sql.NullInt64  `json:"target_id"`
+	Metadata          sql.NullString `json:"metadata"`
+	CreatedAt         int64          `json:"created_at"`
+	UserUsername      sql.NullString `json:"user_username"`
+	UserDisplayName   sql.NullString `json:"user_display_name"`
+	UserCrabAvatar    sql.NullString `json:"user_crab_avatar"`
+	TargetUsername    sql.NullString `json:"target_username"`
+	TargetDisplayName sql.NullString `json:"target_display_name"`
+}
+
+func (q *Queries) GetGameEventsWithUsers(ctx context.Context, gameID int64) ([]GetGameEventsWithUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGameEventsWithUsers, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetGameEventsWithUsersRow{}
+	for rows.Next() {
+		var i GetGameEventsWithUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.UserID,
+			&i.EventType,
+			&i.TargetID,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.UserUsername,
+			&i.UserDisplayName,
+			&i.UserCrabAvatar,
+			&i.TargetUsername,
+			&i.TargetDisplayName,
 		); err != nil {
 			return nil, err
 		}

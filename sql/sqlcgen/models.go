@@ -9,13 +9,14 @@ import (
 )
 
 type Game struct {
-	ID            int64  `json:"id"`
-	RoomID        int64  `json:"room_id"`
-	SpyID         int64  `json:"spy_id"`
-	Location      string `json:"location"`
-	LocationPool  string `json:"location_pool"`
-	StartedAt     int64  `json:"started_at"`
-	TimerDuration int64  `json:"timer_duration"`
+	ID              int64  `json:"id"`
+	RoomID          int64  `json:"room_id"`
+	SpyID           int64  `json:"spy_id"`
+	Location        string `json:"location"`
+	LocationPool    string `json:"location_pool"`
+	RoleAssignments string `json:"role_assignments"`
+	StartedAt       int64  `json:"started_at"`
+	TimerDuration   int64  `json:"timer_duration"`
 }
 
 type GameEvent struct {

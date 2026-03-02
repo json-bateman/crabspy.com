@@ -79,14 +79,6 @@
 
 /* Text and Typography */
 
-.font-ibm-plex {
-  font-family: 'IBM Plex Sans', sans-serif;
-}
-
-.font-ibm-plex-mono {
-  font-family: 'IBM Plex Mono', monospace;
-}
-
 .color-text {
   color: hsl(var(--text));
 }
@@ -460,10 +452,6 @@
   border: var(--border-size-2) solid hsl(var(--text));
 }
 
-.border-success {
-  border: var(--green-9);
-}
-
 .rounded-2 {
   border-radius: var(--radius-2);
 }
@@ -474,25 +462,6 @@
 
 .rounded-round {
   border-radius: var(--radius-round);
-}
-
-.glow-border {
-  border: var(--border-size-2) solid var(--yellow-4);
-  animation: pulse-glow 4s linear infinite;
-}
-
-@keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 5px 1px var(--yellow-4);
-  }
-
-  50% {
-    box-shadow: 0 0 30px 6px var(--yellow-4);
-  }
-
-  100% {
-    box-shadow: 0 0 5px 1px var(--yellow-4);
-  }
 }
 
 
