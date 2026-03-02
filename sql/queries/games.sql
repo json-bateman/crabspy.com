@@ -8,8 +8,8 @@ SELECT * FROM game_events WHERE game_id = ? ORDER BY created_at ASC;
 -- CREATE, UPDATE, DELETE
 ---------------------------
 -- name: CreateGame :one
-INSERT INTO games (room_id, spy_id, location, timer_duration)
-VALUES (?, ?, ?, ?)
+INSERT INTO games (room_id, spy_id, location, location_pool, timer_duration)
+VALUES (?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: InsertGameEvent :exec

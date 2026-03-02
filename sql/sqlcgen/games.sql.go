@@ -11,15 +11,16 @@ import (
 )
 
 const createGame = `-- name: CreateGame :one
-INSERT INTO games (room_id, spy_id, location, timer_duration)
-VALUES (?, ?, ?, ?)
-RETURNING id, room_id, spy_id, location, started_at, timer_duration
+INSERT INTO games (room_id, spy_id, location, location_pool, timer_duration)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, room_id, spy_id, location, location_pool, started_at, timer_duration
 `
 
 type CreateGameParams struct {
 	RoomID        int64  `json:"room_id"`
 	SpyID         int64  `json:"spy_id"`
 	Location      string `json:"location"`
+	LocationPool  string `json:"location_pool"`
 	TimerDuration int64  `json:"timer_duration"`
 }
 
@@ -31,6 +32,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		arg.RoomID,
 		arg.SpyID,
 		arg.Location,
+		arg.LocationPool,
 		arg.TimerDuration,
 	)
 	var i Game
@@ -39,6 +41,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 		&i.RoomID,
 		&i.SpyID,
 		&i.Location,
+		&i.LocationPool,
 		&i.StartedAt,
 		&i.TimerDuration,
 	)
@@ -46,7 +49,7 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 }
 
 const getCurrentGame = `-- name: GetCurrentGame :one
-SELECT id, room_id, spy_id, location, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC LIMIT 1
+SELECT id, room_id, spy_id, location, location_pool, started_at, timer_duration FROM games WHERE room_id = ? ORDER BY started_at DESC LIMIT 1
 `
 
 func (q *Queries) GetCurrentGame(ctx context.Context, roomID int64) (Game, error) {
@@ -57,6 +60,7 @@ func (q *Queries) GetCurrentGame(ctx context.Context, roomID int64) (Game, error
 		&i.RoomID,
 		&i.SpyID,
 		&i.Location,
+		&i.LocationPool,
 		&i.StartedAt,
 		&i.TimerDuration,
 	)

@@ -22,6 +22,7 @@ type GameState struct {
 	RoomID          int64
 	SpyID           int64
 	Location        crabspy.Location
+	LocationPool    []string
 	StartedAt       int64
 	TimerDuration   int64
 	Paused          bool
@@ -41,12 +42,15 @@ func BuildGameState(game sqlcgen.Game, events []sqlcgen.GameEvent) GameState {
 			location = l
 		}
 	}
+	var lp []string
+	json.Unmarshal([]byte(game.LocationPool), &lp)
 	state := GameState{
 		RoomID:        game.RoomID,
 		SpyID:         game.SpyID,
 		Location:      location,
 		StartedAt:     game.StartedAt,
 		TimerDuration: game.TimerDuration,
+		LocationPool:  lp,
 		Events:        events,
 	}
 

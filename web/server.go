@@ -81,11 +81,12 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
 		r.Get("/", homePage(db))
+		r.Get("/full", fullPage())
 		r.Post("/avatar/{avatar}", changeAvatar(db))
 		r.Get("/host", hostPage(db))
 		r.Post("/host", host(db))
 		r.Post("/validate/host", validateHost(db))
-		r.Get("/room/{code}", roomPage(db, bus))
+		r.Get("/room/{code}", roomPage(db))
 		r.Post("/private", privateRoom(db))
 		r.Post("/room/{code}/start", startGame(db, bus))
 		r.Post("/room/{code}/pause", togglePause(db, bus))
@@ -255,6 +256,12 @@ func homePage(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+func fullPage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		Full().Render(r.Context(), w)
+	}
+}
+
 func changeAvatar(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(userIDKey).(int64)
@@ -380,11 +387,10 @@ func privateRoom(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func roomPage(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
+func roomPage(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomCode := strings.ToUpper(chi.URLParam(r, "code"))
 		userID := r.Context().Value(userIDKey).(int64)
-
 		q := sqlcgen.New(db)
 		room, err := q.GetRoomByCode(r.Context(), roomCode)
 		if err != nil {
@@ -393,32 +399,12 @@ func roomPage(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		if err := q.JoinRoom(r.Context(), sqlcgen.JoinRoomParams{
-			RoomID: room.ID,
-			UserID: userID,
-		}); err != nil {
-			slog.Error("JoinRoom failed", "err", err)
-		}
-
-		var gameState *GameState
-		if room.State == "game" {
-			g, err := q.GetCurrentGame(r.Context(), room.ID)
-			if err == nil {
-				events, _ := q.GetGameEvents(r.Context(), g.ID)
-				gs := BuildGameState(g, events)
-				gameState = &gs
-			}
-		}
-
 		if room.State == "closed" {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
-		members, _ := q.GetRoomMembers(r.Context(), room.ID)
-		RoomPage(room, gameState, members, userID).Render(r.Context(), w)
-
-		bus.NotifyRoom(room.ID)
+		RoomPage(room, GameState{}, nil, userID).Render(r.Context(), w)
 	}
 }
 
@@ -433,6 +419,13 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 		sse := datastar.NewSSE(w, r)
+
+		members, _ := q.GetRoomMembers(r.Context(), room.ID)
+		if int64(len(members)) >= room.MaxPlayers {
+			sse.Redirect("/full")
+			return
+		}
+
 		ch := bus.SubscribeRoom(room.ID)
 		defer bus.UnsubscribeRoom(room.ID, ch)
 
@@ -450,16 +443,12 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			case <-ch:
 				room, _ := q.GetRoomById(r.Context(), room.ID)
 				members, _ := q.GetRoomMembers(r.Context(), room.ID)
-				var gameState *GameState
-				if room.State == "game" || room.State == "reveal" || room.State == "finish" || room.State == "timeup" {
-					g, err := q.GetCurrentGame(r.Context(), room.ID)
-					if err == nil {
-						events, _ := q.GetGameEvents(r.Context(), g.ID)
-						gs := BuildGameState(g, events)
-						gameState = &gs
-					}
+				var gs GameState
+				if g, err := q.GetCurrentGame(r.Context(), room.ID); err == nil {
+					events, _ := q.GetGameEvents(r.Context(), g.ID)
+					gs = BuildGameState(g, events)
 				}
-				sse.PatchElementTempl(RoomPage(room, gameState, members, userID))
+				sse.PatchElementTempl(RoomPage(room, gs, members, userID))
 			case <-r.Context().Done():
 				slog.Debug("User disconnected from room SSE", "roomID", room.ID, "userID", userID)
 				ctx := context.Background()
@@ -547,12 +536,28 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 		}
 		members, _ := q.GetRoomMembers(r.Context(), room.ID)
 		spyID := members[rand.Intn(len(members))].ID
-		location := crabspy.Locations[rand.Intn(len(crabspy.Locations))]
+
+		// Randomize max locations
+		locs := make([]crabspy.Location, len(crabspy.Locations))
+		copy(locs, crabspy.Locations)
+		rand.Shuffle(len(locs), func(i, j int) {
+			locs[i], locs[j] = locs[j], locs[i]
+		})
+		locPool := locs[:room.MaxLocations]
+		location := locPool[rand.Intn(int(room.MaxLocations))]
+
+		titles := make([]string, len(locPool))
+		for i, l := range locPool {
+			titles[i] = l.Title
+		}
+
+		pool, _ := json.Marshal(titles)
 
 		game, err := q.CreateGame(r.Context(), sqlcgen.CreateGameParams{
 			RoomID:        room.ID,
 			SpyID:         spyID,
 			Location:      location.Title,
+			LocationPool:  string(pool),
 			TimerDuration: room.TimerDuration,
 		})
 		if err != nil {

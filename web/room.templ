@@ -1,30 +1,31 @@
 package web
 
 import (
-	"crabspy"
 	"crabspy/sql/sqlcgen"
+	"encoding/json"
 	"fmt"
 )
 
-templ RoomPage(room sqlcgen.Room, game *GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+templ RoomPage(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	@Base(room.Name) {
 		<main id="morphTarget" class="items-center" data-init={ fmt.Sprintf("@get('/sse/room/%s')", room.Code) }>
-			if room.State == "game" && game != nil {
-				@Game(room, *game, members, playerID)
-			} else if room.State == "reveal" && game != nil {
-				@Reveal(room, *game, members, playerID)
-			} else if room.State == "timeup" && game != nil {
-				@Timeup(room, *game, members, playerID)
-			} else if room.State == "finish" && game != nil {
-				@Finish(room, *game, members, playerID)
-			} else {
-				@Lobby(room, members, playerID)
+			switch room.State {
+				case "game":
+					@Game(room, game, members, playerID)
+				case "reveal":
+					@Reveal(room, game, members, playerID)
+				case "timeup":
+					@Timeup(room, game, members, playerID)
+				case "finish":
+					@Finish(room, game, members, playerID)
+				default:
+					@Lobby(room, game, members, playerID)
 			}
 		</main>
 	}
 }
 
-templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int64) {
+templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div
 		class="flex-col px-2 max-w-content-3 w-full mt-4"
 		data-init={ `
@@ -113,18 +114,31 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 			</div>
 		}
 		<div id="room-members" class="p-2">
-			<div class="flex justify-between text-lg uppercase font-bold mb-3">
+			<div class="flex justify-between items-center text-lg uppercase font-bold mb-3 mt-3">
 				<span>
 					Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
 				</span>
 				<div
-					class="flex-col items-center color-text hover-text cursor-pointer"
-					data-on:click="document.getElementById('scoreDialog').showModal()"
+					class="flex gap-2 color-text hover-text cursor-pointer"
 				>
-					<span>
-						@ScoreSVG()
-					</span>
-					<span class="text-xs">score</span>
+					<div
+						data-on:click="document.getElementById('historyDialog').showModal()"
+						class="flex flex-col items-center"
+					>
+						<span>
+							@HistorySVG()
+						</span>
+						<span class="text-xs">history</span>
+					</div>
+					<div
+						data-on:click="document.getElementById('scoreDialog').showModal()"
+						class="flex flex-col items-center"
+					>
+						<span>
+							@ScoreSVG()
+						</span>
+						<span class="text-xs">score</span>
+					</div>
 				</div>
 			</div>
 			<div class="flex justify-center flex-wrap gap-4">
@@ -138,7 +152,8 @@ templ Lobby(room sqlcgen.Room, members []sqlcgen.GetRoomMembersRow, playerID int
 			</div>
 		</div>
 	</div>
-	@Dialog("scoreDialog", "Score", ScoreDialog("scoreDialog", members))
+	@Dialog("historyDialog", "History", HistoryDialog(game, members))
+	@Dialog("scoreDialog", "Score", ScoreDialog(members))
 }
 
 templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
@@ -278,12 +293,12 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 templ Reveal(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div class="flex gap-2 justify-center flex-wrap mt-4">
 		if playerID == game.SpyID {
-			for _, l := range crabspy.Locations {
+			for _, l := range game.LocationPool {
 				<div
-					data-on:click={ fmt.Sprintf(`@post('/room/%s/location/%s')`, room.Code, l.Title) }
+					data-on:click={ fmt.Sprintf(`@post('/room/%s/location/%s')`, room.Code, l) }
 				>
-					{ l.Title }
-					<img class="location-card small" src={ StaticPath("images/location-cards/%s.png", l.Title) }/>
+					{ l }
+					<img class="location-card small" src={ StaticPath("images/location-cards/%s.png", l) }/>
 				</div>
 			}
 		} else {
@@ -379,7 +394,39 @@ templ RevealLocationDialog(id string, code string) {
 	</div>
 }
 
-templ ScoreDialog(id string, members []sqlcgen.GetRoomMembersRow) {
+templ HistoryDialog(game GameState, members []sqlcgen.GetRoomMembersRow) {
+	if len(game.Events) == 0 {
+		<div class="text-center color-text">No games played yet</div>
+	} else {
+		<div class="flex-col gap-2">
+			for _, e := range game.Events {
+				<div class="flex items-center gap-4 border-b">
+					if e.UserID != 0 {
+						<div
+							style="inline-size: 44px;"
+							class="flex-col items-center"
+						>
+							<img
+								style="inline-size: 32px; block-size: 32px;"
+								class="pixelated"
+								src={ StaticPath(fmt.Sprintf("images/player-crabs/%s", MemberMap(members)[e.UserID].CrabAvatar)) }
+							/>
+							<span
+								style={ getUserColor(MemberMap(members)[e.UserID].DisplayName, "color") }
+								class="player-name text-outline text-xs"
+							>
+								{ MemberMap(members)[e.UserID].DisplayName }
+							</span>
+						</div>
+					}
+					<span class="text-xs">{ FormatEvent(e, MemberMap(members)) }</span>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ ScoreDialog(members []sqlcgen.GetRoomMembersRow) {
 	<table>
 		<tr>
 			<th>Player</th>
@@ -408,4 +455,53 @@ templ ScoreDialog(id string, members []sqlcgen.GetRoomMembersRow) {
 			</tr>
 		}
 	</table>
+}
+
+func FormatEvent(e sqlcgen.GameEvent, memberMap map[int64]sqlcgen.GetRoomMembersRow) string {
+	targetName := ""
+	if e.TargetID.Valid {
+		targetName = memberMap[e.TargetID.Int64].DisplayName
+	}
+
+	switch e.EventType {
+	case "paused":
+		return "paused the game"
+	case "unpaused":
+		return "Game resumed"
+	case "accused":
+		return fmt.Sprintf("accused %s", targetName)
+	case "voted":
+		if e.Metadata.Valid {
+			var m map[string]string
+			json.Unmarshal([]byte(e.Metadata.String), &m)
+			if m["vote"] == "spy" {
+				return fmt.Sprintf("voted %s was the Spy!", targetName)
+			}
+			return fmt.Sprintf("voted %s was not the spy!", targetName)
+		}
+		return "voted"
+	case "location_guessed":
+		if e.Metadata.Valid {
+			var m map[string]string
+			json.Unmarshal([]byte(e.Metadata.String), &m)
+			return fmt.Sprintf("guessed %s", m["location"])
+		}
+		return "guessed the location"
+	case "location_revealed":
+		return "revealed the location"
+	case "game_started":
+		return "Started the game"
+	case "game_finished":
+		return "Finished the game"
+	default:
+		return e.EventType
+	}
+}
+
+func MemberMap(members []sqlcgen.GetRoomMembersRow) map[int64]sqlcgen.GetRoomMembersRow {
+	m := make(map[int64]sqlcgen.GetRoomMembersRow, len(members))
+	for _, member := range members {
+		m[member.ID] = member
+	}
+	return m
 }
