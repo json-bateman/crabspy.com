@@ -269,6 +269,31 @@
   letter-spacing: var(--font-letterspacing-2);
 }
 
+.artist-card {
+  cursor: pointer;
+  max-inline-size: var(--size-15);
+  inline-size: 100%;
+  background: hsl(var(--background) / 0.75);
+  backdrop-filter: blur(8px);
+  border: var(--border-size-2) solid hsl(var(--primary) / 0.6);
+  border-radius: var(--radius-3);
+  padding: var(--size-2);
+  display: flex;
+  align-items: center;
+  gap: var(--size-3);
+
+  & .img-wrap {
+    display: flex;
+    justify-content: center;
+    width: 140px;
+  }
+
+  & img {
+    max-height: 120px;
+    max-width: 140px;
+  }
+}
+
 .player-card {
   position: relative;
 
@@ -388,7 +413,7 @@
   display: flex;
   inline-size: 100%;
   justify-content: end;
-  margin-bottom: var(--size-4);
+  margin-bottom: var(--size-2);
 }
 
 

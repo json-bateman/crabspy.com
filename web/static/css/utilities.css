@@ -375,6 +375,10 @@
   display: flex;
 }
 
+.w-15 {
+  width: var(--size-15);
+}
+
 .flex-col {
   display: flex;
   flex-direction: column;
@@ -383,6 +387,10 @@
 .flex-1 {
   flex: 1 1 0;
   min-inline-size: 0;
+}
+
+.self-start {
+  align-self: start;
 }
 
 .justify-center {
@@ -403,6 +411,10 @@
 
 .items-center {
   align-items: center;
+}
+
+.items-between {
+  align-items: space-between;
 }
 
 .items-end {

@@ -69,6 +69,9 @@ func setupRoutes(db *sql.DB, bus *eventbus.Bus) chi.Router {
 	// Public web routes
 	r.Get("/signup", signupPage())
 	r.Get("/login", loginPage())
+	r.Get("/artists", func(w http.ResponseWriter, r *http.Request) {
+		Artists().Render(r.Context(), w)
+	})
 
 	r.Post("/validate/signup", validateSignup(db))
 	r.Post("/signup", signup(db))

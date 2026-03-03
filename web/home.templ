@@ -14,7 +14,7 @@ templ Home(user sqlcgen.User) {
 		</div>
 		<div class="flex-col min-h-dvh justify-between">
 			<div class="h-24 m-4 flex justify-between items-center text-outline text-4xl text-center text">
-				<span class="font-bold text-shadow-hard">Crabspy</span>
+				<span class="font-bold">Crabspy</span>
 				<div
 					id="userbox"
 					data-on:click="document.getElementById('userDialog').showModal()"
@@ -34,7 +34,7 @@ templ Home(user sqlcgen.User) {
 			<div class="action-container">
 				<div
 					style="max-inline-size: var(--size-14);"
-					class="flex-col w-full items-end p-4"
+					class="flex-col w-full items-end p-2 px-4"
 				>
 					<a href="host" class="text-outline text-xl color-text">Host Room</a>
 					<div data-signals="{showCode: false}">
@@ -74,6 +74,7 @@ templ Home(user sqlcgen.User) {
 					>
 						Rules	
 					</div>
+					<a href="artists" class="text-outline text-xl color-text">Artists</a>
 				</div>
 			</div>
 		</div>

@@ -1,0 +1,52 @@
+package web
+
+templ Artists() {
+	@Base("Artists") {
+		<div class="splash-wrapper">
+			<img class="splash-img splash-mobile" src={ StaticPath("images/splash-screen-mobile.jpg") }/>
+			<img class="splash-img splash-desktop" src={ StaticPath("images/splash-screen.jpg") }/>
+		</div>
+		<div class="flex justify-center w-full">
+			<div class="flex-col p-4 w-15">
+				<div class="flex items-center justify-center">
+					<span class="font-bold text-outline text-4xl">Artists</span>
+				</div>
+				<div class="flex-col gap-2 items-center w-full">
+					@artistCard(
+						StaticPath("images/location-cards/Pirate-Ship.png"),
+						"NovaPratiwi",
+						"Location Cards",
+						"https://www.fiverr.com/novapratiwi",
+					)
+					@artistCard(
+						StaticPath("images/singapura-logo.png"),
+						"Singapura",
+						"Splash Screen",
+						"https://www.artstation.com/singarts",
+					)
+					@artistCard(
+						StaticPath("images/player-crabs/all-crabs.png"),
+						"LorienPixel",
+						"Pixel Crabs",
+						"https://x.com/LorienPixel",
+					)
+					<div class="mb-4 self-start">
+						<a href="/" class="text-outline color-text text-xl">← Back</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ artistCard(imgSrc, name, role, link string) {
+	<a href={ templ.SafeURL(link) } class="flex color-text artist-card">
+		<div class="img-wrap">
+			<img src={ imgSrc }/>
+		</div>
+		<div class="flex-col">
+			<div class="font-bold text-xl color-text">{ name }</div>
+			<div class="text-lg color-accent">{ role }</div>
+		</div>
+	</a>
+}

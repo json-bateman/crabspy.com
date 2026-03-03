@@ -232,6 +232,9 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 		</div>
 		if game.SpyID == playerID {
 			<div class="text-lg text-center w-full">You are the Spy!</div>
+			<div class="flex justify-center w-full">
+				<img class="location-card" src={ StaticPath("images/location-cards/Crabspy-Card.png") }/>
+			</div>
 			<div class="flex justify-center">
 				if game.TimerRemaining() > 0 {
 					<button
