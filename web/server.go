@@ -452,23 +452,6 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 				sse.PatchElementTempl(RoomPage(room, gs, members, userID))
 			case <-r.Context().Done():
 				slog.Debug("User disconnected from room SSE", "roomID", room.ID, "userID", userID)
-				ctx := context.Background()
-				q := sqlcgen.New(db)
-				if err := q.LeaveRoom(ctx, sqlcgen.LeaveRoomParams{
-					RoomID: room.ID,
-					UserID: userID,
-				}); err != nil {
-					slog.Error("Error LeaveRoom() on disconnect", "err", err)
-					return
-				}
-				remaining, _ := q.GetRoomMembers(ctx, room.ID)
-				if room.HostID == userID && len(remaining) > 0 {
-					q.UpdateRoomHost(ctx, sqlcgen.UpdateRoomHostParams{
-						HostID: remaining[0].ID,
-						ID:     room.ID,
-					})
-				}
-				bus.NotifyRoom(room.ID)
 				return
 			}
 		}
