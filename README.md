@@ -12,11 +12,11 @@ One player is secretly the **Crabspy** — they don't know the location. Everyon
 
 ## Stack
 
-- **Go** — backend, routing (chi), sessions (gorilla)
-- **Templ** — HTML templating
-- **Datastar** — SSE-based reactivity.
-- **SQLite** — via sqlc + goose migrations
-- **Open Props** — CSS design tokens
+- **Go**
+- **Templ**
+- **Datastar**
+- **SQLite**
+- **Open Props**
 
 ## Running locally
 
