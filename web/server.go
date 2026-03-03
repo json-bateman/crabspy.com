@@ -402,10 +402,6 @@ func roomPage(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if room.State == "closed" {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
 
 		RoomPage(room, GameState{}, nil, userID).Render(r.Context(), w)
 	}
@@ -465,18 +461,12 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 					slog.Error("Error LeaveRoom() on disconnect", "err", err)
 					return
 				}
-				if room.HostID == userID {
-					remaining, _ := q.GetRoomMembers(ctx, room.ID)
-					if len(remaining) > 0 {
-						q.UpdateRoomHost(ctx, sqlcgen.UpdateRoomHostParams{
-							HostID: remaining[0].ID,
-							ID:     room.ID,
-						})
-					} else {
-						q.UpdateRoomState(ctx, sqlcgen.UpdateRoomStateParams{
-							ID: room.ID, State: "closed",
-						})
-					}
+				remaining, _ := q.GetRoomMembers(ctx, room.ID)
+				if room.HostID == userID && len(remaining) > 0 {
+					q.UpdateRoomHost(ctx, sqlcgen.UpdateRoomHostParams{
+						HostID: remaining[0].ID,
+						ID:     room.ID,
+					})
 				}
 				bus.NotifyRoom(room.ID)
 				return
@@ -505,18 +495,12 @@ func leaveRoom(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		if room.HostID == userID {
-			remaining, _ := q.GetRoomMembers(r.Context(), room.ID)
-			if len(remaining) > 0 {
-				q.UpdateRoomHost(r.Context(), sqlcgen.UpdateRoomHostParams{
-					HostID: remaining[0].ID,
-					ID:     room.ID,
-				})
-			} else {
-				q.UpdateRoomState(r.Context(), sqlcgen.UpdateRoomStateParams{
-					ID: room.ID, State: "closed",
-				})
-			}
+		remaining, _ := q.GetRoomMembers(r.Context(), room.ID)
+		if room.HostID == userID && len(remaining) > 0 {
+			q.UpdateRoomHost(r.Context(), sqlcgen.UpdateRoomHostParams{
+				HostID: remaining[0].ID,
+				ID:     room.ID,
+			})
 		}
 
 		bus.NotifyRoom(room.ID)
