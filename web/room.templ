@@ -107,12 +107,13 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 			</div>
 		</div>
 		if playerID == room.HostID {
-			<div class="flex w-full justify-center mt-3">
+			<div class="flex w-full justify-center mt-4">
 				<button
 					data-on:click={ fmt.Sprintf("@post('/room/%s/start')", room.Code) }
 					class="btn btn-primary"
 					if len(members) < 3 {
 						disabled
+						data-tooltip="Need at least 3 people to start game"
 					}
 				>
 					Start Game
