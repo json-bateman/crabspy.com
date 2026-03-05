@@ -30,6 +30,10 @@ func NewDatabase(ctx context.Context, dbPath string) (*sql.DB,
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 
+	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
+		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	}
+
 	if err := runMigrations(db); err != nil {
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}

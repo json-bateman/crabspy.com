@@ -82,6 +82,15 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 	return i, err
 }
 
+const deleteOldRooms = `-- name: DeleteOldRooms :exec
+DELETE FROM rooms WHERE created_at < unixepoch() - (12 * 3600)
+`
+
+func (q *Queries) DeleteOldRooms(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOldRooms)
+	return err
+}
+
 const getRoomByCode = `-- name: GetRoomByCode :one
 SELECT id, name, code, host_id, max_locations, max_players, created_at, state, timer_duration FROM rooms WHERE code = ?
 `

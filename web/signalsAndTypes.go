@@ -20,7 +20,6 @@ type HostRules struct {
 type SignupRules struct {
 	Has8          bool
 	UsernameTaken bool
-	Created       bool
 	LessThan12    bool
 }
 

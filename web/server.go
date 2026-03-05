@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/benbjohnson/hashfs"
 	"github.com/go-chi/chi/v5"
@@ -158,8 +159,6 @@ func signup(db *sql.DB) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&signals); err != nil {
 			return
 		}
-
-		fmt.Printf("%+v", signals)
 
 		_, valid := valid(r.Context(), signals, db)
 		if !valid {
@@ -402,7 +401,6 @@ func roomPage(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-
 		RoomPage(room, GameState{}, nil, userID).Render(r.Context(), w)
 	}
 }
@@ -480,10 +478,12 @@ func leaveRoom(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 
 		remaining, _ := q.GetRoomMembers(r.Context(), room.ID)
 		if room.HostID == userID && len(remaining) > 0 {
-			q.UpdateRoomHost(r.Context(), sqlcgen.UpdateRoomHostParams{
+			if err := q.UpdateRoomHost(r.Context(), sqlcgen.UpdateRoomHostParams{
 				HostID: remaining[0].ID,
 				ID:     room.ID,
-			})
+			}); err != nil {
+				slog.Error("Error UpdateRoomHost()", "err", err)
+			}
 		}
 
 		bus.NotifyRoom(room.ID)
@@ -905,6 +905,24 @@ func RunBlocking(setupCtx context.Context, db *sql.DB) error {
 	Session = sessions.NewCookieStore([]byte(crabspy.Env.CookieStoreSecret))
 	bus := eventbus.NewBus()
 	router := setupRoutes(db, bus)
+
+	go func() {
+		q := sqlcgen.New(db)
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := q.DeleteOldRooms(context.Background()); err != nil {
+					slog.Error("Error cleaning up old rooms", "err", err)
+				} else {
+					slog.Debug("Old rooms cleaned up")
+				}
+			case <-setupCtx.Done():
+				return
+			}
+		}
+	}()
 
 	addr := fmt.Sprintf(":%d", crabspy.Env.Port)
 	srv := http.Server{

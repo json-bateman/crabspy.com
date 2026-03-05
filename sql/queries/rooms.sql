@@ -39,3 +39,6 @@ UPDATE room_members SET points = points + ? WHERE room_id = ? AND user_id = ?;
 -- name: AddPointsToAllExcept :exec
 UPDATE room_members SET points = points + ? WHERE room_id = ? AND user_id != ?;
 
+-- name: DeleteOldRooms :exec
+DELETE FROM rooms WHERE created_at < unixepoch() - (12 * 3600);
+
