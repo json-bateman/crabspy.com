@@ -154,7 +154,7 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 						Username:    m.Username,
 						DisplayName: m.DisplayName,
 						CrabAvatar:  m.CrabAvatar,
-					}, m.ID == room.HostID, false, false, false)
+					}, m.ID == room.HostID, false, false, false, false)
 				}
 			</div>
 		</div>
@@ -268,7 +268,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 								Username:    m.Username,
 								DisplayName: m.DisplayName,
 								CrabAvatar:  m.CrabAvatar,
-							}, m.ID == room.HostID, m.ID == game.PausedID, m.ID == game.AccusedID, game.TimerRemaining() == 0 && m.ID == game.SpyID)
+							}, m.ID == room.HostID, m.ID == game.PausedID, m.ID == game.AccusedID, game.TimerRemaining() == 0 && m.ID == game.SpyID, hasVoted(game.Votes, m.ID))
 							if game.PausedID != m.ID && game.AccusedID == 0 && playerID == game.PausedID {
 								<button
 									data-on:click={ fmt.Sprintf("@post('/room/%s/accuse/%d')", room.Code, m.ID) }
@@ -277,7 +277,7 @@ templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRo
 									Accuse
 								</button>
 							}
-							if game.AccusedID == m.ID && game.AccusedID != playerID && game.PausedID != playerID {
+							if game.AccusedID == m.ID && game.AccusedID != playerID && game.PausedID != playerID && !hasVoted(game.Votes, playerID) {
 								<div class="flex justify-between mt-2 gap-2">
 									<button
 										data-on:click={ fmt.Sprintf(`@post('/room/%s/vote/%d/spy')`, room.Code, m.ID) }
@@ -337,7 +337,7 @@ templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 					Username:    m.Username,
 					DisplayName: m.DisplayName,
 					CrabAvatar:  m.CrabAvatar,
-				}, m.ID == room.HostID, false, false, m.ID == game.SpyID)
+				}, m.ID == room.HostID, false, false, m.ID == game.SpyID, false)
 			}
 		</div>
 		if game.IsUnanimousSpy(len(members)) && game.AccusedID == game.SpyID {
@@ -439,6 +439,11 @@ templ ScoreDialog(members []sqlcgen.GetRoomMembersRow) {
 			</tr>
 		}
 	</table>
+}
+
+func hasVoted(votes map[int64]string, id int64) bool {
+	_, ok := votes[id]
+	return ok
 }
 
 func MemberMap(members []sqlcgen.GetRoomMembersRow) map[int64]sqlcgen.GetRoomMembersRow {

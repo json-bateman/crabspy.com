@@ -22,12 +22,13 @@ templ Dialog(id string, title string, body templ.Component) {
 	</dialog>
 }
 
-templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool, isSpyAndTime0 bool) {
+templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool, isSpyAndTime0 bool, hasVoted bool) {
 	<div
 		class={ "player-card shadow " +
 			BoolClass(isHost, "is-host") +
 			BoolClass(isPauser, "is-pauser") +
 			BoolClass(isAccused, "is-accused") +
+			BoolClass(hasVoted, "has-voted") +
 			BoolClass(isSpyAndTime0, "is-spy") }
 		style={ getUserColor(p.Username, "border-color") }
 	>
@@ -59,6 +60,9 @@ templ PlayerCard(p Player, isHost bool, isPauser bool, isAccused bool, isSpyAndT
 		}
 		if isSpyAndTime0 {
 			<span class="float float-top-right text-outline color-primary">SPY</span>
+		}
+		if hasVoted {
+			<span class="float float-bottom-right text-outline color-success">✓</span>
 		}
 	</div>
 }

@@ -239,6 +239,11 @@
   right: 0;
 }
 
+.float-bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
 /* Dialog */
 .dialog {
   border: var(--border-size-3) groove hsl(var(--primary));
@@ -334,6 +339,11 @@
 .player-card.is-pauser::before {
   opacity: 0.20;
   background: var(--green-9);
+}
+
+.player-card.has-voted::before {
+  opacity: 0.20;
+  background: var(--blue-9);
 }
 
 .player-card.is-host::after {

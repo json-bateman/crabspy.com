@@ -449,6 +449,7 @@ func roomSSE(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 				}
 				sse.PatchElementTempl(RoomPage(room, gs, members, userID))
 			case <-r.Context().Done():
+				// Maybe add some leave logic on D/C from SSE
 				slog.Debug("User disconnected from room SSE", "roomID", room.ID, "userID", userID)
 				return
 			}
@@ -672,9 +673,12 @@ func vote(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 
-		game, _, err := getGameState(r.Context(), q, room.ID)
+		game, state, err := getGameState(r.Context(), q, room.ID)
 		if err != nil {
 			slog.Error("Error getGameState()", "Error", err)
+			return
+		}
+		if _, alreadyVoted := state.Votes[userID]; alreadyVoted {
 			return
 		}
 		members, _ := q.GetRoomMembers(r.Context(), room.ID)
@@ -697,7 +701,7 @@ func vote(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			return
 		}
 		// Rebuild gameState after vote
-		_, state, err := getGameState(r.Context(), q, room.ID)
+		_, state, err = getGameState(r.Context(), q, room.ID)
 		if err != nil {
 			slog.Error("Error getGameState()", "Error", err)
 			return
