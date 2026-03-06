@@ -430,9 +430,14 @@
 .location-card {
   inline-size: 400px;
   border: var(--border-size-3) groove hsl(var(--primary));
+  font-size: var(--font-size-0);
 
   &.small {
     inline-size: 150px;
+  }
+
+  &.tiny {
+    inline-size: 80px;
   }
 }
 

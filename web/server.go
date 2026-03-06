@@ -555,10 +555,12 @@ func startGame(db *sql.DB, bus *eventbus.Bus) http.HandlerFunc {
 			slog.Error("Error CreateGame()", "err", err)
 		}
 
+		startedMeta, _ := json.Marshal(map[string]string{"location": location.Title})
 		if err := q.InsertGameEvent(r.Context(), sqlcgen.InsertGameEventParams{
 			GameID:    game.ID,
 			UserID:    userID,
 			EventType: "game_started",
+			Metadata:  sql.NullString{String: string(startedMeta), Valid: true},
 		}); err != nil {
 			slog.Error("Error InsertGameEvent()", "err", err)
 			return

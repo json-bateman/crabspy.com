@@ -1,6 +1,7 @@
 package web
 
 import (
+	"crabspy"
 	"crabspy/sql/sqlcgen"
 	"encoding/json"
 	"fmt"
@@ -121,12 +122,12 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 			</div>
 		}
 		<div id="room-members" class="p-2">
-			<div class="flex justify-between items-center text-lg uppercase font-bold mb-3 mt-3">
+			<div class="flex justify-between text-lg items-center uppercase font-bold mb-3 mt-3">
 				<span>
-					Players — { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
+					Players: { fmt.Sprintf("%d", len(members)) }/{ fmt.Sprintf("%d", room.MaxPlayers) }
 				</span>
 				<div
-					class="flex gap-2 color-text hover-text cursor-pointer"
+					class="grid grid-cols-2 gap-2 color-text hover-text cursor-pointer"
 				>
 					<div
 						data-on:click="document.getElementById('historyDialog').showModal()"
@@ -146,6 +147,24 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 						</span>
 						<span class="text-xs">score</span>
 					</div>
+					<div
+						data-on:click="document.getElementById('locationsDialog').showModal()"
+						class="flex flex-col items-center"
+					>
+						<span>
+							@LocationsSVG()
+						</span>
+						<span class="text-xs">locations</span>
+					</div>
+					<div
+						data-on:click="document.getElementById('rulesDialog').showModal()"
+						class="flex flex-col items-center"
+					>
+						<span>
+							@RulesSVG()
+						</span>
+						<span class="text-xs">rules</span>
+					</div>
 				</div>
 			</div>
 			<div class="flex justify-center flex-wrap gap-4">
@@ -161,6 +180,8 @@ templ Lobby(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersR
 	</div>
 	@Dialog("historyDialog", "Last Game", HistoryDialog(game))
 	@Dialog("scoreDialog", "Score", ScoreDialog(members))
+	@Dialog("locationsDialog", "Locations", LocationsDialogBody())
+	@Dialog("rulesDialog", "Crabspy Rules", CrabspyRulesDialogBody())
 }
 
 templ Game(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
@@ -315,14 +336,18 @@ templ Reveal(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 				</div>
 			}
 		} else {
-			<div>The Crabspy is revealing the Location!</div>
+			<div class="text-xl text-center w-full">{ game.Location.Title }</div>
+			<div class="flex justify-center w-full">
+				<img class="location-card" src={ StaticPath("images/location-cards/%s.png", game.Location.Title) }/>
+			</div>
+			<div class="text-xl text-center w-full color-primary">The Crabspy is revealing the Location!</div>
 		}
 	</div>
 }
 
 templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembersRow, playerID int64) {
 	<div class="flex-col gap-2 items-center flex-wrap w-full mt-4 text-center">
-		<div>The Great Crabbining has occured!</div>
+		<div class="text-lg text-center w-full color-primary">The Great Crabbining has Occured!</div>
 		if room.HostID == playerID {
 			<div class="flex justify-center">
 				<button
@@ -348,6 +373,23 @@ templ Finish(room sqlcgen.Room, game GameState, members []sqlcgen.GetRoomMembers
 			<div class="color-accent text-lg">Non Spies Win! Spy guessed { game.GuessedLocation }</div>
 		} else {
 			<div class="color-primary text-lg">Spy Wins!</div>
+		}
+		<div class="flex justify-center w-full">
+			<img class="location-card" src={ StaticPath("images/location-cards/%s.png", game.Location.Title) }/>
+		</div>
+	</div>
+}
+
+templ LocationsDialogBody() {
+	<div class="flex flex-wrap gap-2 justify-center overflow-auto">
+		for _, loc := range crabspy.Locations {
+			<div class="flex-col items-center text-center" style="inline-size: 80px;">
+				<img
+					class="location-card tiny"
+					src={ StaticPath("images/location-cards/%s.png", loc.Title) }
+				/>
+				<span class="text-xs">{ loc.Title }</span>
+			</div>
 		}
 	</div>
 }
@@ -487,6 +529,13 @@ func FormatEventRich(e sqlcgen.GetGameEventsWithUsersRow) string {
 	case "location_revealed":
 		return "revealed the location"
 	case "game_started":
+		if e.Metadata.Valid {
+			var m map[string]string
+			json.Unmarshal([]byte(e.Metadata.String), &m)
+			if loc, ok := m["location"]; ok {
+				return fmt.Sprintf("Started the game at %s", loc)
+			}
+		}
 		return "Started the game"
 	case "game_finished":
 		return "Finished the game"

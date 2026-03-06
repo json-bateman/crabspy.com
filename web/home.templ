@@ -74,12 +74,19 @@ templ Home(user sqlcgen.User) {
 					>
 						Rules	
 					</div>
-					<a href="artists" class="text-outline text-xl color-text">Artists</a>
+					<div
+					data-on:click="document.getElementById('locationsDialog').showModal()"
+					class="text-outline text-xl color-text cursor-pointer"
+				>
+					Locations
+				</div>
+				<a href="artists" class="text-outline text-xl color-text">Artists</a>
 				</div>
 			</div>
 		</div>
 		@Dialog("userDialog", "Choose Crabatar", UserDialogBody("userDialog"))
 		@Dialog("rulesDialog", "Crabspy Rules", CrabspyRulesDialogBody())
+		@Dialog("locationsDialog", "Locations", LocationsDialogBody())
 	}
 }
 
