@@ -7,3 +7,4 @@ __debug
 .sqlfluff
 **/*_templ.go
 data/
+.task/
